@@ -7,6 +7,9 @@
 <meta name="description" content="2 500+ продукта за детски площадки, спорт, паркове и настилки — до всички само с два клика.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%23ff7a1a'/%3E%3Cpath d='M9 23V9h4v14zm10 0V9h4v14z' fill='%23101214'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/css/main.css?v=202608311232">
+<link rel="stylesheet" href="assets/configurator/sports.css?v=20260920ic1">
+<link rel="stylesheet" href="assets/configurator/theme.css?v=20260920ic1">
+<script type="importmap">{"imports":{"three":"./assets/configurator/vendor/three.module.js"}}</script>
 </head>
 <body>
 
@@ -308,6 +311,15 @@
   </div>
 </div>
 
+<!-- ══════════ 3D SPORTS CONFIGURATOR ══════════ -->
+<div class="cfg" id="cfg" hidden>
+  <div class="cfg-backdrop" data-close></div>
+  <div class="cfg-box" role="dialog" aria-modal="true" aria-label="Конфигуратор">
+    <button class="qv-x" data-close aria-label="Затвори">×</button>
+    <div id="cfgRoot" class="sp-page"></div>
+  </div>
+</div>
+
 <!-- ══════════ ADMIN DRAWER ══════════ -->
 <div class="admin" id="admin" hidden>
   <div class="admin-backdrop" data-close></div>
@@ -370,5 +382,11 @@ window.__bootWatch = setTimeout(function () {
 <script src="assets/js/chat.js?v=202608311232"></script>
 <script src="assets/js/feedback.js?v=20260915live3"></script>
 <script src="assets/js/app.js?v=202608311232"></script>
+<script src="assets/configurator/shim.js?v=20260920ic1"></script>
+<script src="assets/configurator/options.js?v=20260920ic1"></script>
+<script src="assets/configurator/i18n-sports.js?v=20260920ic1"></script>
+<script src="assets/configurator/i18n-sports-scene.js?v=20260920ic1"></script>
+<script src="assets/configurator/sports.js?v=20260920ic1"></script>
+<script type="module" src="assets/configurator/sports-scene3d.js?v=20260920ic1"></script>
 </body>
 </html>
