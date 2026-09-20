@@ -799,31 +799,33 @@ function renderExtras(){
 /* step 6: plain quantity summary — intentionally contains no commercial values */
 function summaryRows(){
   const rows=[];
-  const add=(label,qty,unit='')=>{const n=toQty(qty);if(n>0)rows.push({label,qty:n,unit});};
-  if(S.sport)add(sportLabel(S.sport),1);
+  const add=(label,qty,unit='')=>{const n=toQty(qty);if(n>0)rows.push({label,value:n,unit});};
+  const addValue=(label,value,unit='')=>{if(value!==null&&value!==undefined&&String(value).trim())rows.push({label,value,unit});};
   if(toNum(S.dims.l)>0&&toNum(S.dims.w)>0){
-    add(`${t('sports.dimsLabel')}: ${n2txt(S.dims.l)} × ${n2txt(S.dims.w)} m`,1);
     add(t('sports.surfaceArea'),toNum(S.dims.l)*toNum(S.dims.w),'m²');
   }
-  if(S.surface)add(surfaceName(S.surface),1);
   if(S.fencingOn){
-    add(t('sports.fencingTitle'),1);
     add(t('sports.fenceLength'),2*(toNum(S.dims.l)+toNum(S.dims.w)),'m');
-    add(`${t('sports.fencingHeight')}: ${n2txt(S.fenceHeight)} m`,1);
-    for(const option of S.fenceOpts)add(fenceOptLabel(option),1);
-    add(t('sports.gatesLabel'),S.gates);
+    addValue(t('sports.fencingHeight'),`${n2txt(S.fenceHeight)} m`);
+    for(const option of S.fenceOpts)addValue(fenceOptLabel(option),t('sports.selected'));
+    add(t('sports.gatesLabel'),S.gates,'бр.');
   }
-  add(t('sports.poles'),S.lightingPoles);
-  for(const id of optExtras()){const qty=S.extras[id];add(extraLabel(id),qty);}
-  for(const e of S.equipment){const it=catById(e.id);add(String(it?.name||e.id),e.qty);}
+  add(t('sports.poles'),S.lightingPoles,'бр.');
+  for(const id of optExtras()){const qty=S.extras[id];add(extraLabel(id),qty,'бр.');}
+  for(const e of S.equipment){const it=catById(e.id);add(String(it?.name||e.id),e.qty,'бр.');}
   return rows;
 }
 function renderTotal(){
   const rows=summaryRows();
-  const html=rows.length?rows.map(r=>`<div class="sp-lrow"><span class="sp-lrow-item">${esc(r.label)}</span><span class="sp-lrow-qty"><b>${esc(String(r.qty))}</b>${r.unit?' '+esc(r.unit):''}</span></div>`).join(''):`<div class="empty-state">${esc(t('sports.summaryEmpty'))}</div>`;
-  return `<div class="sp-label">${t('sports.totalTitle')}</div>
+  const bits=[];
+  if(S.sport)bits.push(sportLabel(S.sport));
+  if(toNum(S.dims.l)>0&&toNum(S.dims.w)>0)bits.push(`${n2txt(S.dims.l)} × ${n2txt(S.dims.w)} m`);
+  if(S.surface)bits.push(surfaceName(S.surface));
+  const heading=bits.join(' · ');
+  const html=rows.length?rows.map(r=>`<div class="sp-lrow"><span class="sp-lrow-item">${esc(r.label)}</span><span class="sp-lrow-qty"><b>${esc(String(r.value))}</b>${r.unit?' '+esc(r.unit):''}</span></div>`).join(''):`<div class="empty-state">${esc(t('sports.summaryEmpty'))}</div>`;
+  return `<div class="sp-summary-head">${esc(heading)}</div>
     <div id="spTotalPanel">${html}</div>
-    <div class="sp-totalbar"><div><div class="sp-totalnum">${esc(t('sports.summaryTitle'))}</div><div class="sp-totalmeta">${esc(t('sports.summaryMeta',{n:rows.length}))}</div></div>
+    <div class="sp-totalbar">
       <div class="sp-totalactions"><button class="btn accent" id="spSave" ${S.sport?'':'disabled'}>${t('sports.save')}</button><button class="btn" id="spNew">${t('sports.newCta')}</button><button class="btn ghost" id="spExport" ${S.sport?'':'disabled'}>${t('sports.exportJson')}</button></div>
     </div>`;
 }
