@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Инфра Концепт — Каталог: ВИЖ всичко. ИЗБЕРИ за секунди.</title>
+<meta name="description" content="2 500+ продукта за детски площадки, спорт, паркове и настилки — до всички само с два клика.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='7' fill='%23ff7a1a'/%3E%3Cpath d='M9 23V9h4v14zm10 0V9h4v14z' fill='%23101214'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/main.css?v=202608311232">
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<header class="hdr" id="hdr">
+  <a class="logo" href="#top" aria-label="Infraconcept">
+    <svg viewBox="0 0 32 32" class="logo-mark" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="var(--acc)"/><path d="M9 23V9h4v14zm10 0V9h4v14z" fill="#101214"/></svg>
+    <span class="logo-word">Инфра<b>Концепт</b></span>
+  </a>
+  <nav class="hdr-nav" id="hdrNav" aria-label="Sections"></nav>
+    <div class="hdr-right">
+    <button class="live-btn" id="liveBtn" aria-pressed="false" title="">
+      <svg viewBox="0 0 22 22" width="16" height="16" aria-hidden="true"><rect x="3" y="5" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 9.5l4-2.6v8.2l-4-2.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span class="live-btn-t">на живо</span>
+    </button>
+    <button class="hdr-search" id="hdrSearch" aria-label="Search" title="/ — търсене">
+      <svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true"><circle cx="9" cy="9" r="6.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M13.8 13.8 18 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    </button>
+    <button class="chat-btn" id="chatBtn" aria-label="Assistant" title="">
+      <svg viewBox="0 0 22 22" width="18" height="18" aria-hidden="true"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h11A2.5 2.5 0 0 1 19 5.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4.2 3.6A1 1 0 0 1 3.3 17.8V15H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span id="chatDot" hidden></span>
+    </button>
+    <button class="tray-btn" id="trayBtn" aria-label="Inquiry">
+      <svg viewBox="0 0 22 22" width="18" height="18" aria-hidden="true"><path d="M3.5 4h2.2l2 11.2a1.6 1.6 0 0 0 1.6 1.3h8.2a1.6 1.6 0 0 0 1.5-1.1l1.6-5.5H6.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="19" r="1.4" fill="currentColor"/><circle cx="16.5" cy="19" r="1.4" fill="currentColor"/></svg>
+      <span class="tray-count" id="trayCount" hidden>0</span>
+    </button>
+    <button class="admin-btn" id="adminBtn" aria-label="Settings" title="">
+      <svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true"><circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.6v2.2M10 15.2v2.2M2.6 10h2.2M17.4 10h-2.2M4.8 4.8l1.6 1.6M13.6 13.6l1.6 1.6M4.8 15.2l1.6-1.6M13.6 6.4l1.6-1.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </button>
+    <div class="lang-sw" id="langSw" role="group" aria-label="Language"></div>
+    <button class="burger" id="burger" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- ══════════ HERO ══════════ -->
+  <section class="hero" id="hero">
+    <canvas class="hero-canvas" id="heroCanvas" aria-hidden="true"></canvas>
+    <div class="hero-grain" aria-hidden="true"></div>
+    <div class="hero-in">
+      <p class="hero-kicker" id="heroKicker">Инфра Концепт — инженеринг на открито, от 2008</p>
+      <h1 class="hero-title" id="heroTitle">ВИЖ всичко.<br><em>ИЗБЕРИ за секунди.</em></h1>
+      <p class="hero-sub" id="heroSub">До всички продукти — само с два клика.</p>
+      <div class="hero-stats" id="heroStats"></div>
+      <p class="hero-trust" id="heroTrust">ISO 9001 · ISO 14001 · ISO 45001 · ЦПР — Камарата на строителите в България</p>
+      <div class="hero-cta">
+        <a class="btn solid" href="#catalog" id="ctaCatalog">Към каталога</a>
+        <a class="btn ghost" href="#how" id="ctaHow">Как работи</a>
+        <button class="btn ghost" id="diyOpenHero" type="button">Направи си сам</button>
+      </div>
+      <p class="hero-hint" id="heroHint">
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="8" y="2.5" width="8" height="13" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 6v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6 19c2.5 2.5 9.5 2.5 12 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span id="heroHintTxt">Задръж курсора върху продукт — филтрите се прилагат сами.</span>
+      </p>
+    </div>
+    <a class="hero-scroll" href="#catalog" aria-hidden="true"><span></span></a>
+  </section>
+
+  <!-- ══════════ CATALOG ══════════ -->
+  <section class="catalog" id="catalog">
+    <div class="deck-wrap" id="deckWrap">
+      <div class="deck" id="deck">
+        <div class="deck-row deck-top">
+          <h2 class="deck-title" id="deckTitle">Каталог</h2>
+          <span class="deck-count" id="deckCount"></span>
+          <div class="mode-seg" id="modeSeg" role="group"></div>
+          <div class="deck-spacer"></div>
+          <label class="search-field">
+            <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><circle cx="9" cy="9" r="6.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M13.8 13.8 18 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <input id="searchInput" type="search" autocomplete="off" spellcheck="false" placeholder="Търси…">
+            <button class="search-x" id="searchX" hidden aria-label="×">×</button>
+          </label>
+          <label class="sort-field">
+            <span id="sortLbl">Сортиране</span>
+            <select id="sortSel"></select>
+          </label>
+        </div>
+        <div class="deck-row deck-cats" id="deckCats" role="group"></div>
+        <div class="deck-row deck-purps" id="deckPurps" role="group" hidden></div>
+        <div class="deck-group" id="deckGroup2">
+          <div class="deck-row deck-mats" id="deckMats" role="group"></div>
+          <div class="deck-row deck-ages" id="deckAges" role="group"></div>
+          <div class="deck-row deck-brands" id="deckBrands" role="group"></div>
+        </div>
+        <div class="deck-row deck-active" id="deckActive" hidden></div>
+      </div>
+    </div>
+
+    <div class="grid-note" id="gridNote" hidden></div>
+    <div class="irl-bar" id="irlBar" hidden>
+      <div class="irl-head"><span class="irl-t" id="irlT"></span><span class="irl-d" id="irlD"></span></div>
+      <div class="irl-rail" id="irlRail"></div>
+    </div>
+    <div class="grid" id="grid" aria-live="polite"></div>
+    <div class="grid-more" id="gridMore"></div>
+    <div class="empty" id="empty" hidden>
+      <p class="empty-t" id="emptyT">Нищо по тези филтри</p>
+      <p class="empty-d" id="emptyD">Махнете последния филтър или нулирайте.</p>
+      <div class="empty-actions">
+        <button class="btn ghost" id="emptyLast">Махни последния филтър</button>
+        <button class="btn solid" id="emptyReset">Нулирай</button>
+      </div>
+      <div class="empty-sugg" id="emptySugg"></div>
+    </div>
+  </section>
+
+  <!-- ══════════ HOW ══════════ -->
+  <section class="how sec" id="how">
+    <h2 class="sec-t" id="howT">Как работи</h2>
+    <div class="how-grid">
+      <article class="how-card"><span class="how-n">01</span><h3 id="how1T"></h3><p id="how1D"></p></article>
+      <article class="how-card"><span class="how-n">02</span><h3 id="how2T"></h3><p id="how2D"></p></article>
+      <article class="how-card"><span class="how-n">03</span><h3 id="how3T"></h3><p id="how3D"></p></article>
+    </div>
+  </section>
+
+  <!-- ══════════ AUDIENCES (target-grupi) ══════════ -->
+  <section class="sec aud" id="aud">
+    <h2 class="sec-t" id="audT">За кого</h2>
+    <p class="sec-d" id="audD"></p>
+    <div class="aud-grid" id="audGrid"></div>
+  </section>
+
+  <!-- ══════════ PROJECTS ══════════ -->
+  <section class="sec proj" id="proj">
+    <h2 class="sec-t" id="projT">Реализирани проекти</h2>
+    <p class="sec-d" id="projD"></p>
+    <div class="proj-rail" id="projRail"></div>
+  </section>
+
+  <!-- ══════════ BRANDS ══════════ -->
+  <section class="sec brands" id="brands">
+    <h2 class="sec-t" id="brandsT">Производители</h2>
+    <p class="sec-d" id="brandsD"></p>
+    <div class="brands-grid" id="brandsGrid"></div>
+  </section>
+
+  <!-- ══════════ ABOUT ══════════ -->
+  <section class="sec about" id="about">
+    <h2 class="sec-t" id="aboutT"></h2>
+    <p class="sec-d about-d" id="aboutD"></p>
+    <div class="about-chips">
+      <span class="chip-static">ISO 9001:2015</span>
+      <span class="chip-static">ISO 14001:2015</span>
+      <span class="chip-static">ISO 45001:2018</span>
+      <span class="chip-static" id="certChip">ЦПР — Камара на строителите</span>
+    </div>
+  </section>
+
+  <!-- ══════════ CONTACTS ══════════ -->
+  <section class="sec contacts" id="contacts">
+    <h2 class="sec-t" id="contactsT">Контакти</h2>
+    <div class="contacts-grid" id="contactsGrid"></div>
+  </section>
+
+  <footer class="foot">
+    <span id="footNote"></span>
+    <button class="to-top" id="toTop" aria-label="Top">↑</button>
+  </footer>
+</main>
+
+<!-- ══════════ SMART- HOVER LENS ══════════ -->
+<div class="lens" id="lens" role="button" tabindex="0" hidden>
+  <div class="lens-head"><span class="lens-pul" aria-hidden="true"></span><span id="lensTitle"></span></div>
+  <div class="lens-facets" id="lensFacets"></div>
+  <div class="lens-foot" id="lensFoot"></div>
+  <div class="lens-bar" aria-hidden="true"><i id="lensBar"></i></div>
+</div>
+
+<!-- ══════════ QUICK VIEW ══════════ -->
+<div class="qv" id="qv" hidden>
+  <div class="qv-backdrop" data-close></div>
+  <div class="qv-box" role="dialog" aria-modal="true" aria-label="Quick view">
+    <button class="qv-x" data-close aria-label="Close">×</button>
+    <div class="qv-media"><img id="qvImg" alt=""><div class="qv-thumbs" id="qvThumbs"></div><div class="qv-drawing" id="qvDrawing" hidden></div></div>
+    <div class="qv-body">
+      <h3 id="qvTitle"></h3>
+      <p class="qv-code" id="qvCode"></p>
+      <div class="qv-chips" id="qvChips"></div>
+      <table class="qv-specs" id="qvSpecs"></table>
+      <div class="qv-links" id="qvLinks"></div>
+      <div class="qv-irl" id="qvIrl"></div>
+      <div class="qv-actions"><button class="btn solid" id="qvAdd"></button><button class="btn ghost" id="qvSimilar"></button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ INQUIRY DRAWER ══════════ -->
+<div class="tray" id="tray" hidden>
+  <div class="tray-backdrop" data-close></div>
+  <aside class="tray-box" role="dialog" aria-modal="true" aria-label="Inquiry">
+    <div class="tray-head"><h3 id="trayT">Запитване</h3><button class="tray-x" data-close aria-label="Close">×</button></div>
+    <div class="tray-list" id="trayList"></div>
+    <div class="tray-form">
+      <input id="trayName" placeholder="Име" autocomplete="name">
+      <input id="trayEmail" placeholder="Имейл" type="email" autocomplete="email">
+      <textarea id="trayMsg" placeholder="Съобщение" rows="3"></textarea>
+      <p class="tray-note" id="trayNote"></p>
+      <div class="tray-actions">
+        <button class="btn solid" id="traySend">Подготви имейл</button>
+        <button class="btn ghost" id="trayExport">Изтегли JSON</button>
+        <button class="btn ghost" id="trayCopy">Копирай списъка</button>
+        <button class="btn ghost" id="trayClear">Изчисти</button>
+        <a class="btn ghost" href="tel:+359894445492" id="trayCall">+359 894 445 492</a>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ══════════ BRAND MODAL (reuse qv shell styles with body-modal) ══════════ -->
+<div class="qv" id="brandModal" hidden>
+  <div class="qv-backdrop" data-close></div>
+  <div class="qv-box brand-box" role="dialog" aria-modal="true" aria-label="Brand">
+    <button class="qv-x" data-close aria-label="Close">×</button>
+    <div class="brand-body">
+      <img id="brandLogo" class="brand-logo" alt="">
+      <h3 id="brandName"></h3>
+      <p class="brand-meta" id="brandMeta"></p>
+      <p id="brandDesc"></p>
+      <button class="btn solid" id="brandGo"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PROJECT MODAL ══════════ -->
+<div class="qv" id="projModal" hidden>
+  <div class="qv-backdrop" data-close></div>
+  <div class="qv-box" role="dialog" aria-modal="true" aria-label="Project">
+    <button class="qv-x" data-close aria-label="Close">×</button>
+    <div class="qv-media"><img id="projImg" alt=""><div class="qv-thumbs" id="projThumbs"></div></div>
+    <div class="qv-body">
+      <h3 id="projTitle"></h3>
+      <p class="qv-code" id="projLoc"></p>
+      <div class="qv-actions" style="flex-wrap:wrap">
+        <button class="btn solid" id="projWant"></button>
+        <button class="btn ghost" id="projType"></button>
+        <a class="btn ghost" id="projGo" href="#" target="_blank" rel="noopener"></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ AUDIENCE MODAL ══════════ -->
+<div class="qv" id="audModal" hidden>
+  <div class="qv-backdrop" data-close></div>
+  <div class="qv-box" role="dialog" aria-modal="true" aria-label="Audience">
+    <button class="qv-x" data-close aria-label="Close">×</button>
+    <div class="qv-media"><img id="audImg" alt=""></div>
+    <div class="qv-body">
+      <h3 id="audTitle"></h3>
+      <p class="qv-d" id="audText"></p>
+      <div class="qv-actions">
+        <button class="btn solid" id="audApply"></button>
+        <a class="btn ghost" id="audGo" href="#" target="_blank" rel="noopener"></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DIY COMPOSER ══════════ -->
+<div class="diy" id="diy" hidden>
+  <div class="diy-backdrop" data-close></div>
+  <div class="diy-box" role="dialog" aria-modal="true" aria-label="DIY composer">
+    <div class="diy-head">
+      <div><h3 id="diyT"></h3><p id="diyD" class="diy-sub"></p></div>
+      <div class="diy-head-r"><span class="diy-concept" id="diyConcept"></span><button class="qv-x" data-close aria-label="Close">×</button></div>
+    </div>
+    <div class="diy-controls" id="diyControls">
+      <label><span id="diyTypeLbl"></span>
+        <select id="diySpace">
+          <option value="play"></option><option value="park"></option><option value="sport"></option><option value="mix"></option>
+        </select></label>
+      <label><span id="diyAreaLbl"></span><input id="diyArea" type="number" min="12" max="5000" value="80" step="4"></label>
+      <label><span id="diyAgeLbl"></span>
+        <select id="diyAge">
+          <option value=""></option><option value="a0"></option><option value="a3"></option><option value="a7"></option><option value="a12"></option>
+        </select></label>
+      <button class="btn solid" id="diyGen"></button>
+    </div>
+    <div class="diy-body">
+      <div class="diy-left">
+        <label class="search-field diy-search"><input id="diyQ" type="search" autocomplete="off"></label>
+        <div class="diy-list" id="diyList"></div>
+      </div>
+      <div class="diy-right">
+        <div class="diy-stats" id="diyStats"></div>
+        <div class="diy-warn" id="diyWarn" hidden></div>
+        <div class="diy-chips" id="diyChips"></div>
+        <div class="diy-canvas-wrap" id="diyWrap"><canvas id="diyCanvas"></canvas></div>
+        <p class="diy-emptymsg" id="diyEmpty"></p>
+        <div class="diy-actions">
+          <button class="btn ghost" id="diyRepack"></button>
+          <button class="btn ghost" id="diyPng"></button>
+          <button class="btn ghost" id="diyClear"></button>
+          <button class="btn solid" id="diyAll"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADMIN DRAWER ══════════ -->
+<div class="admin" id="admin" hidden>
+  <div class="admin-backdrop" data-close></div>
+  <aside class="admin-box" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="tray-head"><h3 id="adminT"></h3><button class="tray-x" data-close aria-label="Close">×</button></div>
+    <div class="admin-body" id="adminBody"></div>
+  </aside>
+</div>
+
+<!-- ══════════ CHAT (Площадко) ══════════ -->
+<div class="chat" id="chat" hidden>
+  <div class="chat-backdrop" data-close></div>
+  <aside class="chat-box" role="dialog" aria-modal="true" aria-label="Площадко">
+    <div class="chat-head">
+      <div><b id="chatName">Площадко</b><span class="chat-status" id="chatStatus"></span></div>
+      <button class="tray-x" data-close aria-label="Close">×</button>
+    </div>
+    <div class="chat-msgs" id="chatMsgs"></div>
+    <div class="chat-quick" id="chatQuick"></div>
+    <form class="chat-form" id="chatForm">
+      <input id="chatInput" autocomplete="off" placeholder="…">
+      <button class="btn solid" type="submit" id="chatSend">→</button>
+    </form>
+  </aside>
+</div>
+
+<div class="boot-note" id="bootNote" hidden>
+  <span>Зареждането се забави — проверете връзката. / Loading is slow — check connection.</span>
+  <button type="button" onclick="location.reload()">Опитайте отново / Retry</button>
+</div>
+<noscript><div style="padding:2rem;font-family:sans-serif">Този каталог изисква JavaScript. / This catalog requires JavaScript.</div></noscript>
+
+<script>
+/* old-engine polyfill + boot watchdog (P1 hardening) */
+if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.min(r || 0, Math.abs(w) / 2, Math.abs(h) / 2);
+    this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath(); return this;
+  };
+}
+window.__bootWatch = setTimeout(function () {
+  if (!window.appReady) { var n = document.getElementById("bootNote"); if (n) n.hidden = false; }
+}, 7000);
+</script>
+
+<script src="data/catalog.js?v=202608311232"></script>
+<script src="data/i18n.js?v=202608311232"></script>
+<script src="data/brands.js?v=202608311232"></script>
+<script src="assets/js/store.js?v=202608311232"></script>
+<script src="assets/js/facets.js?v=202608311232"></script>
+<script src="assets/js/grid.js?v=202608311232"></script>
+<script src="assets/js/hover.js?v=202608311232"></script>
+<script src="assets/js/overlay.js?v=20260918drawings"></script>
+<script src="assets/js/live.js?v=202608311232"></script>
+<script src="assets/js/admin.js?v=202608311232"></script>
+<script src="assets/js/plan.js?v=202608311232"></script>
+<script src="assets/js/composer.js?v=202608311232"></script>
+<script src="data/assistant.js?v=1"></script>
+<script src="assets/js/chat.js?v=202608311232"></script>
+<script src="assets/js/feedback.js?v=20260915live3"></script>
+<script src="assets/js/app.js?v=202608311232"></script>
+</body>
+</html>

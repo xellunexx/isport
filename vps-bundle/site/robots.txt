@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /_
+Sitemap: https://dates-beverage-till-persian.trycloudflare.com/sitemap.xml

@@ -1,0 +1,15 @@
+0.00.166.360 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.166.651 W srv  llama_server: -----------------
+0.00.166.653 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.166.653 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.166.653 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.166.654 W srv  llama_server: -----------------
+0.00.171.137 I srv    load_model: loading model 'C:\ai\models\qwen2.5-coder-14b-instruct-q5_k_m-00001-of-00002.gguf'
+0.00.504.634 W common_fit_params: failed to fit params to free device memory: n_gpu_layers already set by user to 99, abort
+0.00.655.040 W load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.10.851.995 I cmn          init: llama threadpool init, n_threads = 14
+0.12.668.313 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 65536, kv_unified = 'true'
+0.12.691.325 I srv  llama_server: model loaded
+0.12.691.335 I srv  llama_server: listening on http://127.0.0.1:10000
+26.40.524.655 I slot get_availabl: id  3 | task -1 | selected slot by LRU, t_last = -1
+26.40.525.007 I slot launch_slot_: id  3 | task 0 | processing task, is_child = 0

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /_
+Sitemap: https://compromise-secondary-bill-nails.trycloudflare.com/sitemap.xml

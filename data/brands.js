@@ -1,0 +1,23 @@
+// Brand reference data (logo, origin, blurb bg/en — other languages fall back to en).
+window.IC_BRANDS = {
+  proludic:  {name:"Proludic",        country:"FR", est:1988,
+    d:{bg:"Френски производител с 35+ години опит; 1 200+ продукта, TÜV, EN 1176/1177.", en:"French manufacturer, 35+ years; 1,200+ products, TÜV, EN 1176/1177."}},
+  vinci:     {name:"Vinci Play",      country:"PL", est:1992,
+    d:{bg:"Европейски лидер в детски и фитнес съоръжения — 50+ държави, екоматериали.", en:"European leader in play & fitness — 50+ countries, eco materials."}},
+  fulco:     {name:"Fulco",           country:"PL", est:1994,
+    d:{bg:"Урбанистично обзавеждане: архитектурен бетон, неръждаема стомана, смарт решения.", en:"Urban furniture: architectural concrete, stainless steel, smart systems."}},
+  "3dprogram":{name:"3D Program",     country:"BG", est:2010,
+    d:{bg:"Ръчно изработени 3D каучукови фигури и 2D графики, EN 1176 / REACH.", en:"Hand-made 3D rubber figures & 2D graphics, EN 1176 / REACH."}},
+  polfisan:  {name:"Polfisan",        country:"TR", est:1997,
+    d:{bg:"Семеен цех от 1997 г., днес международен производител на детски и спортни съоръжения.", en:"A 1997 family workshop, now an international play & sport manufacturer."}},
+  hbh:       {name:"Hard Body Hang",  country:"PL", est:2012,
+    d:{bg:"Стрийт фитнес и боулдъринг стени, тествани с професионални атлети (TÜV SÜD).", en:"Street workout rigs & bouldering walls, athlete-tested (TÜV SÜD)."}},
+  innoflex:  {name:"Innoflex",        country:"BG", est:2015, own:true,
+    d:{bg:"Собствена марка на Инфра Концепт — каучукови плочи от рециклиран SBR, произведени в България.", en:"Infraconcept's own brand — recycled-SBR rubber tiles made in Bulgaria."}},
+  corkeen:   {name:"Corkeen",         country:"PT", est:2019,
+    d:{bg:"Настилки от естествен корк на Amorim — без микропластмаси, отрицателен въглероден отпечатък.", en:"Natural-cork surfacing by Amorim — microplastic-free, carbon-negative."}},
+  epoxy:     {name:"Epoxy",           country:"BG", est:2012, own:true,
+    d:{bg:"Индустриални и декоративни епоксидни и полиуретанови подове, от проектиране до изпълнение.", en:"Industrial & decorative epoxy/PU floors, design to execution."}},
+  infra:     {name:"Инфра Концепт",   country:"BG", est:2008, own:true,
+    d:{bg:"Собствени решения — InfraPLAY системи, монтаж и строителен надзор.", en:"Own solutions — InfraPLAY systems, installation & supervision."}},
+};
