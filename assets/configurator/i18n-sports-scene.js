@@ -6,7 +6,7 @@ function put(lang,view){
   I18N[lang].sports=Object.assign(I18N[lang].sports||{},{scene:{view:view}});
 }
 put('en',{
-  perspective:'Perspective', top:'Top / Plan', fit:'Fit', dims:'Dims',
+  perspective:'Perspective', top:'Top / Plan', fit:'Fit', dims:'Dims', night:'Night',
   fullscreen:'Fullscreen', exitFullscreen:'Exit fullscreen', rotate:'Rotate',
   tilt:'Tilt', raise:'Raise', lower:'Lower', reset:'Reset', grid:'Grid',
   sideTilt:'Side tilt', hint:'Drag to move · Ctrl rotate · Shift raise · Alt tilt · Space no snap · Del remove',
@@ -15,7 +15,7 @@ put('en',{
   resetAllPins:'Reset all pins'
 });
 put('bg',{
-  perspective:'Перспектива', top:'Отгоре / План', fit:'Побери', dims:'Размери',
+  perspective:'Перспектива', top:'Отгоре / План', fit:'Побери', dims:'Размери', night:'Нощ',
   fullscreen:'Цял екран', exitFullscreen:'Изход от цял екран', rotate:'Завърти',
   tilt:'Наклон', raise:'Повдигни', lower:'Свали', reset:'Нулирай', grid:'Мрежа',
   sideTilt:'Страничен наклон', hint:'Влачи за преместване · Ctrl завъртане · Shift повдигане · Alt наклон · Space без прилепване · Del премахване',
