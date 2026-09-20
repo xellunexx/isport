@@ -732,7 +732,8 @@ function buildEquipmentRig3D(o) {
     const rimZ = bbZ + 0.38;
     const rimGeo = new THREE.TorusGeometry(0.225, 0.016, 8, 24);
     rimGeo.rotateX(HPI);
-    addPart(rimGeo, '#ea580c', 0, rimY, rimZ);
+    const rim = addPart(rimGeo, '#ea580c', 0, rimY, rimZ);
+    rim.userData.sp3 = { ...o, meta: { ...(o.meta || {}), part: 'rim', rimR: 0.225 } };
     // White net mesh
     const netGeo = new THREE.CylinderGeometry(0.22, 0.12, 0.38, 12, 1, true);
     netGeo.translate(0, -0.19, 0);
@@ -1547,10 +1548,12 @@ function mount(el, config, opts) {
   let buildTarget = group;
   const PROPS = new THREE.Group();
   PROPS.name = 'sports-props';
+  const FX = new THREE.Group();
+  FX.name = 'sports-fx';
   const dimsGroup = new THREE.Group();
   dimsGroup.name = 'sports-dims';
   dimsGroup.visible = false;
-  scene.add(group, PROPS, dimsGroup);
+  scene.add(group, PROPS, FX, dimsGroup);
 
   const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 2000);
   const controls = new OrbitControls(camera, canvas);
@@ -1903,6 +1906,7 @@ function mount(el, config, opts) {
   let activeBodies = 0;
   let idlePropAt = 0;
   let lastPropTick = 0;
+  const pointerTrail = [];
   const propGeo = {
     ball: new THREE.SphereGeometry(1, 16, 10),
     disc: new THREE.CylinderGeometry(1, 1, 0.035, 24),
@@ -1992,7 +1996,7 @@ function mount(el, config, opts) {
     root.userData = {
       prop: true, propKind: 'ball', ballType: kind, radius,
       visualBoost: kind === 'basketball' ? 4.2 : 2.5,
-      default: [x, radius, z], index
+      default: [x, radius, z], index, rimAwarded: false
     };
     const mesh = new THREE.Mesh(propGeo.ball, propMat[kind]);
     mesh.scale.setScalar(radius);
@@ -2007,7 +2011,7 @@ function mount(el, config, opts) {
     const root = new THREE.Group();
     root.name = 'hero-frisbee';
     root.position.set(x, 0.04, z);
-    root.userData = { prop: true, propKind: 'frisbee', radius: 0.0175, default: [x, 0.04, z], index };
+    root.userData = { prop: true, propKind: 'frisbee', radius: 0.0175, default: [x, 0.04, z], index, rimAwarded: false };
     const mesh = new THREE.Mesh(propGeo.disc, propMat.bright);
     mesh.scale.set(0.14, 1, 0.14);
     mesh.position.y = -0.0175; markPropMesh(root, mesh, true); root.add(mesh);
@@ -2019,7 +2023,7 @@ function mount(el, config, opts) {
   function addRacket(x, z, index) {
     const root = new THREE.Group();
     root.name = 'hero-racket'; root.position.set(x, 0.02, z);
-    root.userData = { prop: true, propKind: 'racket', default: [x, 0.02, z], index };
+    root.userData = { prop: true, propKind: 'racket', default: [x, 0.02, z], index, swingFrom: 0, swingTo: 0, swingT: 0 };
     const head = new THREE.Mesh(propGeo.torus, propMat.dark);
     head.rotation.x = HPI; head.position.y = 0.06; markPropMesh(root, head);
     const strings = new THREE.Mesh(propGeo.plane, propMat.dark);
@@ -2034,7 +2038,7 @@ function mount(el, config, opts) {
   function addKettlebell(x, z, index) {
     const root = new THREE.Group();
     root.name = 'hero-kettlebell'; root.position.set(x, 0, z);
-    root.userData = { prop: true, propKind: 'kettlebell', default: [x, 0, z], index };
+    root.userData = { prop: true, propKind: 'kettlebell', heavy: true, default: [x, 0, z], index };
     const body = new THREE.Mesh(propGeo.ball, propMat.generic);
     body.scale.setScalar(0.12); body.position.y = 0.12; markPropMesh(root, body);
     const handle = new THREE.Mesh(propGeo.torus, propMat.dark);
@@ -2088,7 +2092,7 @@ function mount(el, config, opts) {
     } else if (sport === 'street_workout') {
       addKettlebell(-W * 0.2, 0, i++);
       const root = new THREE.Group(); root.name = 'hero-medicine-ball'; root.position.set(W * 0.2, 0.13, 0);
-      root.userData = { prop: true, propKind: 'ball', ballType: 'generic', radius: 0.13, visualBoost: 2.5, default: [W * 0.2, 0.13, 0], index: i++ };
+      root.userData = { prop: true, propKind: 'ball', ballType: 'generic', heavy: true, radius: 0.13, visualBoost: 2.5, default: [W * 0.2, 0.13, 0], index: i++, rimAwarded: false };
       const mesh = new THREE.Mesh(propGeo.ball, propMat.generic); mesh.scale.setScalar(0.13); markPropMesh(root, mesh, true); root.add(mesh);
       addPropShadow(root, 0.15); PROPS.add(root); propRoots.push(root); propBodies.push(root.userData);
     } else if (sport === 'open_park') {
@@ -2150,9 +2154,39 @@ function mount(el, config, opts) {
     return null;
   }
 
-  function kickBody(root, hit) {
+  function pointerVelocity() {
+    if (pointerTrail.length < 2) return new THREE.Vector3();
+    const first = pointerTrail[0], last = pointerTrail[pointerTrail.length - 1];
+    const span = last.t - first.t;
+    if (span < 8) return new THREE.Vector3();
+    const v = new THREE.Vector3(
+      (last.x - first.x) / (span / 1000), 0, (last.z - first.z) / (span / 1000)
+    );
+    if (v.length() > 14) v.setLength(14);
+    return v;
+  }
+
+  function activateBody(b) {
+    if (!b.active) { b.active = true; activeBodies++; }
+  }
+
+  function kickBody(root, hit, pv) {
     const b = root && root.userData;
     if (!b || !['ball', 'frisbee'].includes(b.propKind)) return;
+    const speed = pv && pv.length();
+    b.rimAwarded = false;
+    b.prevY = root.position.y;
+    if (speed > 1.2) {
+      const mass = b.heavy ? 0.25 :
+        ({ basketball: 0.9, football: 0.9, volleyball: 0.9, tennis: 1.1 }[b.ballType] || 0.9);
+      const horizontal = pv.clone().multiplyScalar(b.propKind === 'frisbee' ? 1.2 : 1);
+      b.velocity = horizontal.multiplyScalar(mass);
+      b.velocity.y = b.heavy ? Math.min(0.6, speed * 0.35) :
+        b.propKind === 'frisbee' ? 1.5 : THREE.MathUtils.clamp(speed * 0.35, 0.4, 4.5);
+      b.lastKickT = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      activateBody(b);
+      return;
+    }
     const dx = root.position.x - (hit?.x || root.position.x), dz = root.position.z - (hit?.z || root.position.z);
     const len = Math.hypot(dx, dz) || 1;
     const cam = camera.getWorldDirection(new THREE.Vector3()); cam.y = 0; cam.normalize();
@@ -2160,18 +2194,87 @@ function mount(el, config, opts) {
     root.position.x += dir.x * 0.01;
     root.position.z += dir.z * 0.01;
     b.velocity = new THREE.Vector3(dir.x * 7.5, b.propKind === 'frisbee' ? 2 : 4, dir.z * 7.5);
-    b.active = true; activeBodies++;
+    activateBody(b);
   }
 
-  function hitRacket(root) {
-    root.userData.racketT = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  function hitRacket(root, pv) {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (root.userData.racketT && now - root.userData.racketT < 300) return;
+    root.userData.racketT = now;
     root.userData.racketHit = true;
+    if (pv && pv.length() > 1.2) {
+      root.userData.swingFrom = root.rotation.y;
+      root.userData.swingTo = Math.atan2(pv.x, pv.z);
+      root.userData.swingT = now;
+    }
     for (const p of propRoots) {
       if (p.userData?.ballType === 'tennis' && p.position.distanceTo(root.position) < 1.5) {
-        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        const dir = pv && pv.length() > 1.2 ? pv.clone() : new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
         dir.y = 0; dir.normalize();
-        p.userData.velocity = dir.multiplyScalar(7); p.userData.velocity.y = 3.2; p.userData.active = true; activeBodies++;
+        p.userData.velocity = dir.multiplyScalar(pv && pv.length() > 1.2 ? 1.3 * pv.length() : 7);
+        p.userData.velocity.y = pv && pv.length() > 1.2 ? THREE.MathUtils.clamp(pv.length() * 0.4, 1, 4) : 3.2;
+        p.userData.prevY = p.position.y;
+        p.userData.rimAwarded = false;
+        activateBody(p.userData);
       }
+    }
+  }
+
+  function rimTargets() {
+    const rims = [];
+    group.traverse((node) => {
+      const meta = node.userData?.sp3?.meta;
+      if (node.isMesh && meta?.part === 'rim') {
+        rims.push({ pos: node.getWorldPosition(new THREE.Vector3()), radius: meta.rimR || 0.225 });
+      }
+    });
+    return rims;
+  }
+
+  function spawnConfetti(pos) {
+    if (reducedMotion) return;
+    const colors = ['#f97316', '#22c55e', '#3b82f6', '#eab308', '#ec4899'];
+    for (let i = 0; i < 36; i++) {
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.06, 0.1),
+        new THREE.MeshBasicMaterial({ color: colors[i % colors.length], transparent: true, side: THREE.DoubleSide })
+      );
+      mesh.position.copy(pos);
+      mesh.userData.fx = {
+        age: 0, maxAge: 1.6,
+        velocity: new THREE.Vector3((Math.random() - 0.5) * 3, 2 + Math.random() * 2, (Math.random() - 0.5) * 3),
+        spin: (Math.random() - 0.5) * 12
+      };
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      FX.add(mesh);
+    }
+  }
+
+  function updateFx(dt) {
+    const step = Math.min(0.05, Math.max(0, dt));
+    for (let i = FX.children.length - 1; i >= 0; i--) {
+      const mesh = FX.children[i], fx = mesh.userData.fx;
+      if (!fx) continue;
+      fx.age += step;
+      fx.velocity.y -= 9.81 * step;
+      mesh.position.addScaledVector(fx.velocity, step);
+      mesh.rotation.x += fx.spin * step;
+      mesh.rotation.y += fx.spin * 0.7 * step;
+      mesh.rotation.z += fx.spin * 0.45 * step;
+      mesh.material.opacity = Math.max(0, 1 - fx.age / fx.maxAge);
+      if (fx.age >= fx.maxAge) {
+        FX.remove(mesh);
+        mesh.geometry.dispose();
+        mesh.material.dispose();
+      }
+    }
+  }
+
+  function clearFx() {
+    while (FX.children.length) {
+      const mesh = FX.children.pop();
+      mesh.geometry?.dispose();
+      mesh.material?.dispose();
     }
   }
 
@@ -2179,45 +2282,79 @@ function mount(el, config, opts) {
     for (const root of propRoots) {
       const b = root.userData, d = b.default;
       root.position.set(d[0], d[1], d[2]); root.rotation.set(0, 0, 0);
-      b.velocity = null; b.active = false;
+      b.velocity = null; b.active = false; b.rimAwarded = false; b.prevY = root.position.y;
       if (b.shadow) b.shadow.material.opacity = 0.28;
     }
-    activeBodies = 0; setPropHover(null);
+    activeBodies = 0; setPropHover(null); clearFx();
   }
 
   function updateProps(now, dt) {
     if (state.view === 'top') return;
+    const totalDt = Math.min(0.05, Math.max(0, dt));
+    const steps = Math.min(3, Math.max(1, Math.ceil(totalDt / (1 / 60))));
+    const stepDt = totalDt / steps;
     if (activeBodies > 0) {
       const L = num0(state.config.dims, 'l', 20), W = num0(state.config.dims, 'w', 12);
-      for (const root of propRoots) {
+      const fenced = configFenceOn(state.config);
+      const rims = rimTargets();
+      for (let step = 0; step < steps; step++) for (const root of propRoots) {
         const b = root.userData;
         if (!b.active || !b.velocity) continue;
         const floor = b.radius || 0.04;
-        b.velocity.y += (b.propKind === 'frisbee' ? -3 : -9.81) * dt;
-        root.position.addScaledVector(b.velocity, dt);
-        const edgeX = L / 2 - floor, edgeZ = W / 2 - floor;
-        if (root.position.x < -edgeX || root.position.x > edgeX) { root.position.x = THREE.MathUtils.clamp(root.position.x, -edgeX, edgeX); b.velocity.x *= -0.5; }
-        if (root.position.z < -edgeZ || root.position.z > edgeZ) { root.position.z = THREE.MathUtils.clamp(root.position.z, -edgeZ, edgeZ); b.velocity.z *= -0.5; }
+        const prevY = root.position.y;
+        b.velocity.y += (b.propKind === 'frisbee' ? -3 : -9.81) * stepDt;
+        root.position.addScaledVector(b.velocity, stepDt);
+        const edgeX = fenced ? L / 2 - floor : L / 2 + 2;
+        const edgeZ = fenced ? W / 2 - floor : W / 2 + 2;
+        if (root.position.x < -edgeX || root.position.x > edgeX) { root.position.x = THREE.MathUtils.clamp(root.position.x, -edgeX, edgeX); b.velocity.x *= -0.55; }
+        if (root.position.z < -edgeZ || root.position.z > edgeZ) { root.position.z = THREE.MathUtils.clamp(root.position.z, -edgeZ, edgeZ); b.velocity.z *= -0.55; }
         if (root.position.y <= floor) {
-          root.position.y = floor; b.velocity.y *= b.propKind === 'frisbee' ? -0.15 : (b.ballType === 'basketball' ? -0.75 : b.ballType === 'tennis' ? -0.7 : -0.6);
-          b.velocity.x *= 0.82; b.velocity.z *= 0.82;
-          if (b.propKind === 'frisbee') b.velocity.x *= 0.94, b.velocity.z *= 0.94;
+          root.position.y = floor;
+          if (b.velocity.y < 0) b.velocity.y *= b.heavy ? -0.15 : (b.propKind === 'frisbee' ? -0.15 : (b.ballType === 'basketball' ? -0.75 : b.ballType === 'tennis' ? -0.7 : -0.6));
         }
-        root.rotation.x += b.velocity.z * dt / Math.max(0.04, floor);
-        root.rotation.z -= b.velocity.x * dt / Math.max(0.04, floor);
+        if (root.position.y <= floor + 0.005) {
+          const friction = Math.max(0, 1 - (b.heavy ? 6 : 1.6) * stepDt);
+          b.velocity.x *= friction; b.velocity.z *= friction;
+        }
+        b.velocity.multiplyScalar(Math.max(0, 1 - 0.08 * stepDt));
+        if (b.ballType === 'basketball' && !b.rimAwarded && b.velocity.y < 0 && prevY > 0) {
+          for (const rim of rims) {
+            if (prevY >= rim.pos.y && root.position.y <= rim.pos.y &&
+                Math.hypot(root.position.x - rim.pos.x, root.position.z - rim.pos.z) < rim.radius * 0.9) {
+              root.position.x = THREE.MathUtils.lerp(root.position.x, rim.pos.x, 0.5);
+              root.position.z = THREE.MathUtils.lerp(root.position.z, rim.pos.z, 0.5);
+              b.rimAwarded = true;
+              spawnConfetti(rim.pos);
+              break;
+            }
+          }
+        }
+        root.rotation.x += b.velocity.z * stepDt / Math.max(0.04, floor);
+        root.rotation.z -= b.velocity.x * stepDt / Math.max(0.04, floor);
         if (b.shadow) { b.shadow.position.y = -root.position.y + floor + 0.008; b.shadow.material.opacity = 0.28 * Math.max(0, 1 - (root.position.y - floor) / 4); }
-        if (b.velocity.length() < 0.05 && root.position.y <= floor + 0.01) { b.velocity.set(0, 0, 0); b.active = false; activeBodies--; }
+        b.prevY = root.position.y;
+        if (b.velocity.length() < 0.08 && root.position.y <= floor + 0.01) {
+          b.velocity.set(0, 0, 0); b.active = false; b.rimAwarded = false; activeBodies = Math.max(0, activeBodies - 1);
+        }
       }
     }
     if (now >= idlePropAt && propRoots.length) {
       const balls = propRoots.filter((p) => p.userData?.ballType && !p.userData.active);
-      if (balls.length) { const p = balls[Math.floor((now / 1000) % balls.length)]; p.userData.velocity = new THREE.Vector3(0, 1.2, 0); p.userData.active = true; activeBodies++; }
+      if (balls.length) {
+        const p = balls[Math.floor((now / 1000) % balls.length)];
+        p.userData.velocity = new THREE.Vector3(0, 1.2, 0); p.userData.prevY = p.position.y; p.userData.rimAwarded = false;
+        activateBody(p.userData);
+      }
       idlePropAt = now + 6000 + ((Math.round(now) % 4000));
     }
     PROPS.children.forEach((root) => {
       const b = root.userData;
       if (b?.ambient === 'bird') { const a = now * b.bird.speed + b.bird.phase; root.position.set(Math.cos(a) * b.bird.rx, b.bird.cy + Math.sin(a * 2) * 0.3, Math.sin(a) * b.bird.rz); root.scale.y = 0.85 + Math.sin(now / 140 + b.bird.phase) * 0.18; }
       else if (b?.ambient === 'butterfly') { const a = now * b.speed + b.phase; root.position.set(b.cx + Math.cos(a) * b.radius, 0.75 + Math.sin(a * 2) * 0.12, b.cz + Math.sin(a) * b.radius); root.rotation.y = -a; }
+      if (b?.swingT && now - b.swingT < 150) {
+        const k = THREE.MathUtils.clamp((now - b.swingT) / 150, 0, 1);
+        root.rotation.y = THREE.MathUtils.lerp(b.swingFrom, b.swingTo, 1 - Math.pow(1 - k, 3));
+      }
       if (b?.racketHit && now - b.racketT < 800) root.rotation.z = Math.sin((now - b.racketT) / 800 * Math.PI) * 0.8;
     });
   }
@@ -2458,6 +2595,8 @@ function mount(el, config, opts) {
     }
     ANIMATED.length = 0;
     while (PROPS.children.length) PROPS.remove(PROPS.children[PROPS.children.length - 1]);
+    clearFx();
+    pointerTrail.length = 0;
     while (dimsGroup.children.length) disposeChild(dimsGroup.children.pop());
     billboards.length = 0;
     unitObjects.clear();
@@ -2898,9 +3037,10 @@ function mount(el, config, opts) {
     const prop = pickProp(e);
     if (prop) {
       const hit = groundPoint(e);
-      if (prop.userData.propKind === 'racket') hitRacket(prop);
-      else if (prop.userData.propKind === 'frisbee') kickBody(prop, hit);
-      else if (prop.userData.propKind === 'ball') kickBody(prop, hit);
+      const pv = pointerVelocity();
+      if (prop.userData.propKind === 'racket') hitRacket(prop, pv.length() > 1.2 ? pv : null);
+      else if (prop.userData.propKind === 'frisbee') kickBody(prop, hit, pv.length() > 1.2 ? pv : null);
+      else if (prop.userData.propKind === 'ball') kickBody(prop, hit, pv.length() > 1.2 ? pv : null);
       e.preventDefault(); e.stopPropagation();
       return;
     }
@@ -2941,11 +3081,27 @@ function mount(el, config, opts) {
   function onPointerMove(e) {
     if (!drag.on) {
       if (e.target === canvas) {
+        const point = groundPoint(e);
+        if (point) {
+          pointerTrail.push({ x: point.x, z: point.z, t: typeof performance !== 'undefined' ? performance.now() : Date.now() });
+          const now = pointerTrail[pointerTrail.length - 1].t;
+          while (pointerTrail.length > 6 || (pointerTrail.length && now - pointerTrail[0].t > 120)) pointerTrail.shift();
+        }
         const prop = pickProp(e);
         if (prop) {
           setPropHover(prop);
           setHover(null);
           canvas.style.cursor = 'pointer';
+          const pv = pointerVelocity();
+          const speed = pv.length();
+          const b = prop.userData;
+          const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+          if (prop.userData.propKind === 'racket' && speed > 1.2) {
+            hitRacket(prop, pv);
+          } else if (['ball', 'frisbee'].includes(prop.userData.propKind) && speed > 1.2 &&
+            now - (b.lastKickT || 0) > 180) {
+            kickBody(prop, groundPoint(e), pv);
+          }
           return;
         }
         setPropHover(null);
@@ -3417,6 +3573,7 @@ function mount(el, config, opts) {
       }
       updateProps(now, dt);
     }
+    updateFx(dt);
     if (propHintEl) propHintEl.style.display = propRoots.length && !selectedUnit ? 'block' : 'none';
 
     renderer.render(scene, camera);
@@ -3493,10 +3650,11 @@ function mount(el, config, opts) {
       controls.dispose();
       while (group.children.length) disposeChild(group.children.pop());
       while (PROPS.children.length) PROPS.remove(PROPS.children[PROPS.children.length - 1]);
+      clearFx();
       while (dimsGroup.children.length) disposeChild(dimsGroup.children.pop());
       while (guides.children.length) disposeChild(guides.children.pop());
       while (gizmo.children.length) disposeChild(gizmo.children.pop());
-      scene.remove(guides, gizmo);
+      scene.remove(guides, gizmo, FX);
       renderer.dispose();
       if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
       if (toolbar.parentNode) toolbar.parentNode.removeChild(toolbar);
@@ -3512,6 +3670,32 @@ function mount(el, config, opts) {
   if (typeof window !== 'undefined') {
     window.__sp3debug = {
       props: () => PROPS.children.length,
+      propScreenPos() {
+        const root = propRoots.find((p) => p.userData?.ballType);
+        if (!root) return null;
+        const p = root.getWorldPosition(new THREE.Vector3()).project(camera);
+        const r = canvas.getBoundingClientRect();
+        return { x: r.left + (p.x + 1) * r.width / 2, y: r.top + (-p.y + 1) * r.height / 2 };
+      },
+      pointerVelocity: () => pointerVelocity().toArray(),
+      pointerTrail: () => pointerTrail.map((p) => ({ ...p })),
+      propState(i) {
+        const root = propRoots[Number(i) || 0];
+        if (!root) return null;
+        return { position: root.position.toArray(), velocity: root.userData.velocity?.toArray() || null };
+      },
+      setPropState(i, position, velocity) {
+        const root = propRoots[Number(i) || 0];
+        if (!root) return false;
+        const b = root.userData;
+        if (position) root.position.set(position[0], position[1], position[2]);
+        b.velocity = velocity ? new THREE.Vector3(velocity[0], velocity[1], velocity[2]) : null;
+        b.prevY = root.position.y; b.rimAwarded = false;
+        if (b.velocity) activateBody(b);
+        return true;
+      },
+      rims: () => rimTargets().map((r) => ({ position: r.pos.toArray(), radius: r.radius })),
+      fx: () => FX.children.length,
       fit: () => { const f = fitInfo(); const bb = new THREE.Box3().setFromObject(group); return { c: f.c.toArray(), r: f.r, dist: f.dist, min: bb.min.toArray(), max: bb.max.toArray(), aspect: camera.aspect, cam: camera.position.toArray(), tgt: controls.target.toArray(), w: canvas.clientWidth, h: canvas.clientHeight }; },
       photoCards: () => {
         let n = 0;
