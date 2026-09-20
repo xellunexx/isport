@@ -9,6 +9,8 @@
   root.I18N=root.I18N||{en:{},bg:{}};
   root.I18N.en=root.I18N.en||{};
   root.I18N.bg=root.I18N.bg||{};
+  root.I18N.en.actions=Object.assign({back:"Back"},root.I18N.en.actions||{});
+  root.I18N.bg.actions=Object.assign({back:"Назад"},root.I18N.bg.actions||{});
 
   function deepGet(obj,path){return String(path).split('.').reduce((a,k)=>a?.[k],obj);}
   function interpolate(value,vars={}){
