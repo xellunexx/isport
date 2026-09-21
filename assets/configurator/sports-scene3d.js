@@ -1762,16 +1762,66 @@ function mount(el, config, opts) {
     surroundNight.push({ material: headMat, type: 'lamp' });
     surroundMesh(root, new THREE.SphereGeometry(0.14, 10, 8), headMat, x, 3.42, z, true);
   }
-  function addCar(root, x, z, rot = 0, color = '#64748b') {
+  function addCar(root, x, z, rot = 0, rnd = Math.random) {
+    const palette = ['#c8ccd1', '#2b2f36', '#e8e9ea', '#7a1f2b', '#2c4a7a', '#5a6b58'];
+    const color = palette[Math.floor(rnd() * palette.length)];
     const bodyMat = surroundMat(color, { roughness: 0.58 });
-    const car = new THREE.Group(); car.position.set(x, 0, z); car.rotation.y = rot; root.add(car);
-    surroundMesh(car, new THREE.BoxGeometry(4.3, 0.6, 1.5), bodyMat, 0, 0.38, 0, true);
-    surroundMesh(car, new THREE.BoxGeometry(2.1, 0.52, 1.2), surroundMat('#a8b4bf', { roughness: 0.38 }), -0.1, 0.88, 0, true);
-    const wheelMat = surroundMat('#20242a', { roughness: 0.95 });
-    for (const wx of [-1.45, 1.45]) for (const wz of [-0.73, 0.73]) {
-      const wheel = surroundMesh(car, new THREE.CylinderGeometry(0.22, 0.22, 0.12, 10), wheelMat, wx, 0.25, wz, true);
-      wheel.rotation.z = HPI;
+    const car = new THREE.Group();
+    car.name = 'street-car';
+    car.userData.surroundCar = true;
+    car.position.set(x, 0, z);
+    car.rotation.y = rot;
+    root.add(car);
+
+    surroundMesh(car, new THREE.BoxGeometry(4.4, 0.55, 1.8), bodyMat, 0, 0.55, 0, true);
+    surroundMesh(car, new THREE.BoxGeometry(4.4, 0.12, 1.84), surroundMat('#30353b', { roughness: 0.72 }), 0, 0.32, 0, true);
+    for (const bx of [-2.2, 2.2]) {
+      surroundMesh(car, new THREE.BoxGeometry(0.12, 0.3, 1.7), surroundMat('#23272d', { roughness: 0.7 }), bx, 0.5, 0, true);
     }
+
+    const cabinShape = new THREE.Shape();
+    cabinShape.moveTo(-1.7, 0);
+    cabinShape.lineTo(-1.15, 0.62);
+    cabinShape.lineTo(0.95, 0.62);
+    cabinShape.lineTo(1.55, 0);
+    cabinShape.closePath();
+    const cabinGeo = new THREE.ExtrudeGeometry(cabinShape, { depth: 1.62, bevelEnabled: false });
+    cabinGeo.translate(0, 0, -0.81);
+    const glass = surroundMesh(car, cabinGeo, surroundMat('#1f2a36', { roughness: 0.15, metalness: 0.6 }), 0, 0.83, 0, false);
+    glass.receiveShadow = false;
+    surroundMesh(car, new THREE.BoxGeometry(2.05, 0.05, 1.6), bodyMat, -0.05, 1.45, 0, true);
+
+    const wheelMat = surroundMat('#1b1e22', { roughness: 0.95 });
+    const hubMat = surroundMat('#9aa1a8', { roughness: 0.48, metalness: 0.45 });
+    for (const wx of [-1.45, 1.45]) for (const wz of [-0.85, 0.85]) {
+      const wheel = surroundMesh(car, new THREE.CylinderGeometry(0.33, 0.33, 0.24, 12), wheelMat, wx, 0.33, wz, true);
+      wheel.rotation.z = HPI;
+      const hub = surroundMesh(car, new THREE.CylinderGeometry(0.18, 0.18, 0.26, 12), hubMat, wx, 0.33, wz, true);
+      hub.rotation.z = HPI;
+    }
+
+    const headMat = new THREE.MeshStandardMaterial({
+      color: '#fff6d5', emissive: new THREE.Color('#fff1c2'), emissiveIntensity: 0,
+      roughness: 0.3, metalness: 0.05
+    });
+    const tailMat = new THREE.MeshStandardMaterial({
+      color: '#7a1220', emissive: new THREE.Color('#ff3b3b'), emissiveIntensity: 0,
+      roughness: 0.36, metalness: 0.02
+    });
+    for (const wz of [-0.6, 0.6]) {
+      const head = surroundMesh(car, new THREE.BoxGeometry(0.05, 0.12, 0.35), headMat, 2.2, 0.72, wz, false);
+      head.receiveShadow = false;
+      const tail = surroundMesh(car, new THREE.BoxGeometry(0.05, 0.12, 0.35), tailMat, -2.2, 0.72, wz, false);
+      tail.receiveShadow = false;
+    }
+    surroundNight.push({ material: headMat, type: 'lamp' }, { material: tailMat, type: 'lamp' });
+
+    const contact = surroundMesh(car, new THREE.PlaneGeometry(4.6, 2), new THREE.MeshBasicMaterial({
+      map: surroundContactTexture(), transparent: true, depthWrite: false, side: THREE.DoubleSide
+    }), 0, 0.006, 0, false);
+    contact.rotation.x = -HPI;
+    contact.castShadow = false;
+    return car;
   }
   function addHills(root, rnd) {
     for (let i = 0; i < 4; i++) {
@@ -1816,13 +1866,15 @@ function mount(el, config, opts) {
         addSurroundBuilding(root, i * 11, clearZ + 16, 8.5, 5.5, 4.8, houseCols[(i + 1) % 3], '#7a4a3a');
       }
       for (let i = -2; i <= 2; i++) addLamp(root, i * 10, clearZ + 2.2);
-      for (let i = 0; i < 5; i++) addCar(root, -clearX - 5 + (i % 3) * 4.8, -6 + Math.floor(i / 3) * 2, 0, ['#65758b', '#8b6f5a', '#78836d'][i % 3]);
+      for (let i = 0; i < 4; i++) addCar(root, -9 + i * 6, clearZ + 3.4, 0, rnd);
+      for (const x of [-6, 4]) addCar(root, x, -clearZ - 3.4, Math.PI, rnd);
       for (let i = -2; i <= 2; i++) {
         const tree = makeTree(4.2, 1.05, 'round', '#4f8a45');
         tree.position.set(i * 9, 0, -clearZ - 1);
         root.add(tree);
       }
       if (kind === 'city') {
+        for (let i = 0; i < 3; i++) addCar(root, clearX + 3.4, -10 + i * 7, HPI, rnd);
         for (let i = -2; i <= 2; i++) addSurroundBuilding(root, i * 17, clearZ + 25, 12, 8, 10 + (i + 2) * 1.7, ['#a8adb2', '#d2c4ae', '#9b5f4b'][i % 3], '#565b65');
         addSurroundBuilding(root, 34, 68, 16, 11, 25, '#8f969c', '#454c56');
         addSurroundBuilding(root, -30, 76, 16, 11, 31, '#b0a99c', '#454c56');
