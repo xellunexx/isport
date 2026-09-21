@@ -42,7 +42,7 @@ const S={
   surface:null, variant:null,
   fencingOn:true, fenceHeight:4, fenceOpts:[], gates:0,
   lightingPoles:4, polesAuto:false, extras:{benches:0,stands_50:0,changing_rooms:0},
-  equipment:[], purpFilter:'all',
+  equipment:[], purpFilter:'all', equipQuery:'', equipShown:48,
   loadedId:null, loadedName:''
 };
 let root=null;
@@ -461,7 +461,7 @@ function newConfig(){
     step:1,seen:new Set([1]),sport:null,dims:{l:0,w:0},dimsHint:'',dimClamped:false,surface:null,variant:null,
     fencingOn:true,fenceHeight:fenceHeights().includes(4)?4:fenceHeights()[0]||4,fenceOpts:[],gates:0,
     lightingPoles:polesDefault(),polesAuto:false,extras:Object.fromEntries(optExtras().map(id=>[id,0])),
-    equipment:[],purpFilter:'all',loadedId:null,loadedName:''
+    equipment:[],purpFilter:'all',equipQuery:'',equipShown:48,loadedId:null,loadedName:''
   });
   S._polesTouched=false;S._fenceTouched=false;S._benchesTouched=false;
   renderRegions();
@@ -727,7 +727,86 @@ function renderFencing(){
     <div class="sp-gatesrow"><span class="sp-qty"><button type="button" data-sp-gates="-1" aria-label="−">−</button><b>${toQty(S.gates)}</b><button type="button" data-sp-gates="1" aria-label="+">+</button></span><span class="helper sp-gates-hint">${t('sports.gatesHint',{max:gr.max})}</span></div>`:''}`:''}`;
 }
 
-/* step 4: equipment — suggested purp chips first, thumbnail grid, selected chips */
+/* step 4: equipment — suggested purp chips first, compact filtered grid, selected chips */
+function equipItems(){
+  const query=String(S.equipQuery||'').trim().toLocaleLowerCase();
+  const tokens=query?query.split(/\s+/).filter(Boolean):[];
+  return (S.catalog||[]).filter(it=>{
+    if(S.purpFilter!=='all'&&String(it?.purp)!==S.purpFilter)return false;
+    if(!tokens.length)return true;
+    const hay=[it?.name,it?.brand,it?.id,it?.purp,purpLabel(it?.purp)].filter(Boolean).join(' ').toLocaleLowerCase();
+    return tokens.every(token=>hay.includes(token));
+  });
+}
+function renderEquipGrid(items){
+  const shown=items.slice(0,Math.max(0,S.equipShown||48));
+  if(!items.length)return `<div class="empty-state">${t('sports.equipEmpty')}</div>`;
+  const cards=shown.map(it=>{
+    const q=selectedQty(it.id);
+    const name=String(it.name??it.id);
+    const img=Array.isArray(it.images)&&it.images[0]?`<img class="sp-ethumb" src="${esc(String(it.images[0]))}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;sp-ethumb-ph&quot;>◌</div>'">`:`<div class="sp-ethumb-ph">◌</div>`;
+    const meta=[it.brand,it.dims,it.zone_m2?t('sports.zone')+': '+it.zone_m2:''].filter(Boolean).map(x=>esc(String(x))).join(' · ');
+    return `<div class="sp-ecard ${q?'active':''}" data-sp-add="${esc(String(it.id))}" tabindex="0">
+      <div class="sp-ethumb-wrap">${img}${q?`<span class="sp-ebadge">×${q}</span>`:''}</div>
+      <div class="sp-ebody">
+        <div class="sp-ename" title="${esc(name)}">${esc(name)}</div>
+        <div class="sp-emeta" title="${esc(meta.replace(/&amp;/g,'&'))}">${meta}</div>
+        <div class="sp-eactions">
+          ${q?`<span class="sp-qty"><button type="button" data-sp-dec="${esc(String(it.id))}" aria-label="−">−</button><b>${q}</b><button type="button" data-sp-inc="${esc(String(it.id))}" aria-label="+">+</button></span>
+               <button type="button" class="sp-x" data-sp-del="${esc(String(it.id))}" aria-label="${esc(t('sports.remove'))}">×</button>`
+             :`<span></span><button type="button" class="sp-add">${t('sports.add')}</button>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  const remaining=items.length-shown.length;
+  return `<div class="sp-egrid">${cards}</div>${remaining>0?`<button type="button" class="btn ghost sp-emore" data-sp-more>${t('sports.showMore',{n:remaining})}</button>`:''}`;
+}
+function updateEquipGrid(scope=root){
+  const wrap=scope?.querySelector?.('#spEquipGrid');
+  if(!wrap)return;
+  const items=equipItems();
+  const count=scope.querySelector('.sp-ecount');
+  if(count)count.textContent=t('sports.equipCount',{n:items.length});
+  wrap.innerHTML=renderEquipGrid(items);
+  bindEquipGrid(wrap);
+}
+function bumpEquipment(id,d){
+  const cur=S.equipment.find(e=>String(e.id)===String(id));
+  if(!cur){
+    if(d>0){
+      const e={id:String(id),qty:1};
+      placeNewEntry(e,catById(id));
+      S.equipment.push(e);
+    }
+  }else{
+    cur.qty=Math.max(0,toQty(cur.qty)+d);
+    if(cur.qty===0)S.equipment=S.equipment.filter(x=>x!==cur);
+  }
+  renderStepContent();touched();
+  if(!cur&&d>0&&_scene&&typeof _scene.selectById==='function'){
+    pushScene();
+    _scene.selectById(id);
+  }
+}
+function bindEquipGrid(scope){
+  if(!scope)return;
+  scope.querySelectorAll('[data-sp-add]').forEach(c=>{
+    c.removeAttribute('role');
+    c.setAttribute('tabindex','0');
+  });
+  scope.querySelectorAll('.sp-add').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    const card=b.closest('[data-sp-add]');
+    if(card)bumpEquipment(card.dataset.spAdd,1);
+  }));
+  scope.querySelectorAll('[data-sp-inc]').forEach(b=>b.onclick=e=>{e.stopPropagation();bumpEquipment(b.dataset.spInc,1);});
+  scope.querySelectorAll('[data-sp-dec]').forEach(b=>b.onclick=e=>{e.stopPropagation();bumpEquipment(b.dataset.spDec,-1);});
+  scope.querySelectorAll('[data-sp-more]').forEach(b=>b.onclick=()=>{
+    S.equipShown+=48;
+    updateEquipGrid(scope);
+  });
+}
 function renderEquipment(){
   if(S.errCatalog&&!S.catalog)return `<div class="empty-state">${t('sports.catalogFailed')}</div>`;
   if(!S.catalog)return `<div class="empty-state">${S.loadingCatalog?t('sports.equipLoading'):t('sports.loading')}</div>`;
@@ -759,26 +838,9 @@ function renderEquipment(){
       <button type="button" class="sp-x" data-sp-del="${esc(e.id)}" aria-label="${esc(t('sports.remove'))}">×</button>
     </span>`}).join('')}</div>`:'';
   const posNote=S.equipment.length?`<div class="sp-posnote">${t('sports.posAuto')}</div>`:'';
-  const items=S.catalog.filter(x=>S.purpFilter==='all'||String(x.purp)===S.purpFilter);
-  const grid=items.length?`<div class="sp-egrid">${items.map(it=>{
-    const q=selectedQty(it.id);
-    const img=Array.isArray(it.images)&&it.images[0]?`<img class="sp-ethumb" src="${esc(String(it.images[0]))}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;sp-ethumb-ph&quot;>◌</div>'">`:`<div class="sp-ethumb-ph">◌</div>`;
-    const meta=[it.brand,it.dims,it.zone_m2?t('sports.zone')+': '+it.zone_m2:''].filter(Boolean).map(x=>esc(String(x))).join(' · ');
-    return `<div class="sp-ecard ${q?'active':''}" data-sp-add="${esc(String(it.id))}" tabindex="0">
-      ${img}
-      <div class="sp-ebody">
-        <div class="sp-ename">${esc(String(it.name??it.id))}</div>
-        <div class="sp-emeta">${meta}</div>
-        <div class="sp-eactions">
-          ${q?`<span class="sp-qty"><button type="button" data-sp-dec="${esc(String(it.id))}" aria-label="−">−</button><b>${q}</b><button type="button" data-sp-inc="${esc(String(it.id))}" aria-label="+">+</button></span>
-               <button type="button" class="sp-x" data-sp-del="${esc(String(it.id))}" aria-label="${esc(t('sports.remove'))}">×</button>`
-             :`<span></span><button type="button" class="sp-add">${t('sports.add')}</button>`}
-        </div>
-      </div>
-    </div>`;
-  }).join('')}</div>`:`<div class="empty-state">${t('sports.equipEmpty')}</div>`;
+  const items=equipItems();
   const resetPins=S.equipment.length?`<div class="sp-equip-tools"><button type="button" class="btn ghost" data-sp-reset-pins>${t('sports.resetAllPins')}</button></div>`:'';
-  return chips+sel+posNote+resetPins+grid;
+  return `<div class="sp-ehead"><label class="sp-esearch"><input type="search" id="spEquipQ" placeholder="${esc(t('sports.equipSearch'))}" value="${esc(S.equipQuery)}"></label><span class="sp-ecount" aria-live="polite">${esc(t('sports.equipCount',{n:items.length}))}</span></div>${chips}${sel}${posNote}${resetPins}<div id="spEquipGrid">${renderEquipGrid(items)}</div>`;
 }
 
 /* step 5: extras — pictogram rows */
@@ -842,7 +904,7 @@ function bindStep(){
     const id=b.dataset.spSport;
     const sp=optSports().find(x=>String(x.id)===String(id));
     S.sport=id;
-    S.catalog=null;S.catalogKey='';S.purpFilter='all';
+    S.catalog=null;S.catalogKey='';S.purpFilter='all';S.equipQuery='';S.equipShown=48;
     if(sp?.dims){S.dims={l:toNum(sp.dims.l)||S.dims.l,w:toNum(sp.dims.w)||S.dims.w};}
     S.polesAuto=false;
     applyCoupledDefaults(sp);
@@ -897,34 +959,22 @@ function bindStep(){
     S.gates=Math.max(0,Math.min(mx,toQty(S.gates)+(Number(b.dataset.spGates)||0)));
     S._fenceTouched=true;renderStepContent();touched();
   });
-  sc.querySelectorAll('[data-sp-purp]').forEach(b=>b.onclick=()=>{S.purpFilter=b.dataset.spPurp||'all';renderStepContent();});
-  const bump=(id,d)=>{
-    const cur=S.equipment.find(e=>String(e.id)===String(id));
-    if(!cur){
-      if(d>0){
-        const e={id:String(id),qty:1};
-        placeNewEntry(e,catById(id));
-        S.equipment.push(e);
-      }
-    }
-    else{cur.qty=Math.max(0,toQty(cur.qty)+d);if(cur.qty===0)S.equipment=S.equipment.filter(x=>x!==cur);}
-    renderStepContent();touched();
-    if(!cur&&d>0&&_scene&&typeof _scene.selectById==='function'){
-      pushScene();
-      _scene.selectById(id);
-    }
-  };
-  sc.querySelectorAll('[data-sp-add]').forEach(c=>{
-    c.removeAttribute('role');
-    c.setAttribute('tabindex','0');
+  sc.querySelectorAll('[data-sp-purp]').forEach(b=>b.onclick=()=>{
+    S.purpFilter=b.dataset.spPurp||'all';
+    S.equipQuery='';S.equipShown=48;
+    renderStepContent();
   });
-  sc.querySelectorAll('.sp-add').forEach(b=>b.addEventListener('click',e=>{
-    e.stopPropagation();
-    const card=b.closest('[data-sp-add]');
-    if(card)bump(card.dataset.spAdd,1);
-  }));
-  sc.querySelectorAll('[data-sp-inc]').forEach(b=>b.onclick=e=>{e.stopPropagation();bump(b.dataset.spInc,1);});
-  sc.querySelectorAll('[data-sp-dec]').forEach(b=>b.onclick=e=>{e.stopPropagation();bump(b.dataset.spDec,-1);});
+  const equipQ=$('#spEquipQ',sc);
+  let equipQTimer=0;
+  equipQ?.addEventListener('input',()=>{
+    clearTimeout(equipQTimer);
+    equipQTimer=setTimeout(()=>{
+      S.equipQuery=String(equipQ.value||'');
+      S.equipShown=48;
+      updateEquipGrid(sc);
+    },120);
+  });
+  bindEquipGrid(sc.querySelector('#spEquipGrid'));
   /* H/V pin inputs: numeric → pin live; empty → unpin on commit;
      non-numeric → ignore + revert on blur */
   const onPinInput=(inp,axis,commit)=>{
