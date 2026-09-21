@@ -22,6 +22,8 @@
     $("#ctaHow").textContent = T("cta_how");
     $("#heroHintTxt").textContent = T("how3_d");
     $("#deckTitle").textContent = T("menu_catalog");
+    const filtersLbl = $("#deckFiltersLbl"); if (filtersLbl) filtersLbl.textContent = T("f_filters");
+    const sideBtn = $("#deckSideBtn"); if (sideBtn) sideBtn.title = T("f_side");
     $("#searchInput").placeholder = T("search_ph");
     $("#sortLbl").textContent = T("sort");
     ["rel", "name", "brand"].forEach(v => { const o = $("#sortSel").querySelector(`option[value=${v}]`); if (o) o.textContent = T("sort_" + v); });
@@ -313,7 +315,75 @@
       window.__stickyChromeH = () => (h ? h.offsetHeight : 0) + deckWrap.offsetHeight;
     };
     new ResizeObserver(setDeckH).observe(deckWrap);
+
+    const deck = $("#deck");
+    const deckActive = $("#deckActive");
+    const filterSide = $("#filterSide");
+    const deckFiltersBtn = $("#deckFiltersBtn");
+    const deckSideBtn = $("#deckSideBtn");
+    const sideNodes = [$("#deckCats"), $("#deckPurps"), $("#deckGroup2")];
+    let deckScrollRaf = 0;
+    let deckPinnedAt = null;
+    function syncDeckButtons() {
+      if (deckFiltersBtn) deckFiltersBtn.setAttribute("aria-expanded", deckWrap.classList.contains("deck-open") ? "true" : "false");
+      if (deckSideBtn) deckSideBtn.setAttribute("aria-pressed", document.body.classList.contains("deck-side") ? "true" : "false");
+    }
+    function setDeckSide(on, persist = true) {
+      document.body.classList.toggle("deck-side", on);
+      if (filterSide) {
+        filterSide.hidden = !on;
+        if (on) sideNodes.forEach(node => { if (node) filterSide.appendChild(node); });
+        else sideNodes.forEach(node => { if (node) deck.insertBefore(node, deckActive); });
+      }
+      if (persist) {
+        try { localStorage.setItem("ic.deckSide", on ? "1" : "0"); } catch (e) {}
+      }
+      if (on) {
+        deckWrap.classList.remove("deck-compact", "deck-open");
+        deckPinnedAt = null;
+      }
+      syncDeckButtons();
+      setDeckH();
+    }
+    function updateDeckScroll() {
+      deckScrollRaf = 0;
+      if (document.body.classList.contains("deck-side")) {
+        deckWrap.classList.remove("deck-compact", "deck-open");
+        deckPinnedAt = null;
+        syncDeckButtons();
+        return;
+      }
+      const y = window.scrollY || 0;
+      if (deckWrap.classList.contains("deck-open") && deckPinnedAt != null && y >= deckPinnedAt + 400) {
+        deckWrap.classList.remove("deck-open");
+        deckPinnedAt = null;
+      }
+      if (!deckWrap.classList.contains("deck-open")) {
+        deckWrap.classList.toggle("deck-compact", y > $("#catalog").offsetTop + 160);
+      }
+      syncDeckButtons();
+    }
+    const queueDeckScroll = () => {
+      if (!deckScrollRaf) deckScrollRaf = requestAnimationFrame(updateDeckScroll);
+    };
+    window.addEventListener("scroll", queueDeckScroll, { passive: true });
+    deckFiltersBtn?.addEventListener("click", () => {
+      if (document.body.classList.contains("deck-side")) return;
+      const open = deckWrap.classList.toggle("deck-open");
+      if (open) deckPinnedAt = window.scrollY || 0;
+      else deckPinnedAt = null;
+      syncDeckButtons();
+      setDeckH();
+    });
+    deckSideBtn?.addEventListener("click", () => {
+      setDeckSide(!document.body.classList.contains("deck-side"));
+      queueDeckScroll();
+    });
+    let savedSide = false;
+    try { savedSide = localStorage.getItem("ic.deckSide") === "1"; } catch (e) {}
+    setDeckSide(savedSide, false);
     setDeckH();
+    updateDeckScroll();
     window.appReady = true;
     clearTimeout(window.__bootWatch);
     const bn = document.getElementById("bootNote"); if (bn) bn.hidden = true;

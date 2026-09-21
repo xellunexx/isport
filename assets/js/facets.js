@@ -131,38 +131,48 @@ window.ICF = (function () {
     const rh = ribbon();
     da.hidden = !rh; da.innerHTML = rh;
 
+    const activeCount = (st.cat ? 1 : 0) + st.purp.size + st.mats.size + st.ages.size + st.brands.size + (st.q ? 1 : 0);
+    const filtersN = $("#deckFiltersN");
+    if (filtersN) {
+      filtersN.textContent = activeCount;
+      filtersN.hidden = activeCount === 0;
+    }
+
     const total = IC.filtered().length;
     $("#deckCount").innerHTML = `<b>${total.toLocaleString("bg-BG")}</b> ${esc(T("results"))}` + (st.cat ? "" : "");
   }
 
-  /* one delegated listener for the whole deck */
+  function onFilterClick(e) {
+    const catBtn = e.target.closest("[data-cat]");
+    if (catBtn) { if (!catBtn.classList.contains("off")) IC.setCat(catBtn.dataset.cat); return; }
+    const chipEl = e.target.closest(".chip[data-facet]");
+    if (chipEl) {
+      const { facet, value } = chipEl.dataset;
+      if (facet === "brands") { IC.selectBrand(value); return; } // brand = fresh-start gesture
+      IC.toggle(facet, value);
+      return;
+    }
+    const rx = e.target.closest("[data-rfacet]");
+    if (rx) { IC.clearFacet(rx.dataset.rfacet, rx.dataset.rvalue); return; }
+    const recX = e.target.closest("[data-rec]") || e.target.closest("[data-clearrec]");
+    if (recX) { IC.clearRec(); return; }
+    const un = e.target.closest("[data-undo]");
+    if (un) { IC.undoReset(); return; }
+    const modeB = e.target.closest("#modeSeg [data-mode]");
+    if (modeB) { IC.setMode(modeB.dataset.mode); return; }
+    if (e.target.closest("#afClear")) IC.clearAll(true);
+
+    // any OTHER deliberate deck click clears the stale reset note + undo offer
+    if (e.target.closest("[data-cat], .chip, #modeSeg, .search-field, .sort-field")) {
+      if (IC.state.resetNote) { IC.state.resetNote = null; }
+    }
+  }
+
   function bind() {
     const deck = $("#deck");
-    deck.addEventListener("click", e => {
-      const catBtn = e.target.closest("[data-cat]");
-      if (catBtn) { if (!catBtn.classList.contains("off")) IC.setCat(catBtn.dataset.cat); return; }
-      const chipEl = e.target.closest(".chip[data-facet]");
-      if (chipEl) {
-        const { facet, value } = chipEl.dataset;
-        if (facet === "brands") { IC.selectBrand(value); return; } // brand = fresh-start gesture
-        IC.toggle(facet, value);
-        return;
-      }
-      const rx = e.target.closest("[data-rfacet]");
-      if (rx) { IC.clearFacet(rx.dataset.rfacet, rx.dataset.rvalue); return; }
-      const recX = e.target.closest("[data-rec]") || e.target.closest("[data-clearrec]");
-      if (recX) { IC.clearRec(); return; }
-      const un = e.target.closest("[data-undo]");
-      if (un) { IC.undoReset(); return; }
-      const modeB = e.target.closest("#modeSeg [data-mode]");
-      if (modeB) { IC.setMode(modeB.dataset.mode); return; }
-      if (e.target.closest("#afClear")) IC.clearAll(true);
-
-      // any OTHER deliberate deck click clears the stale reset note + undo offer
-      if (e.target.closest("[data-cat], .chip, #modeSeg, .search-field, .sort-field")) {
-        if (IC.state.resetNote) { IC.state.resetNote = null; }
-      }
-    });
+    const side = $("#filterSide");
+    deck.addEventListener("click", onFilterClick);
+    if (side) side.addEventListener("click", onFilterClick);
   }
 
   return { render, bind, T };
