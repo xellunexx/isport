@@ -1545,7 +1545,7 @@ function buildObject(o, L, W, onPhoto) {
   mesh.rotation.set(typeof o.tiltX === 'number' ? o.tiltX : 0, typeof o.rotY === 'number' ? o.rotY : 0, typeof o.tiltZ === 'number' ? o.tiltZ : 0);
   if (kind === 'field' && o.type === 'plane' && o.size) {
     const slab = new THREE.Mesh(new THREE.BoxGeometry(o.size[0], 0.14, o.size[1]), standardMaterial('#b8b4aa', 'default'));
-    slab.position.y = -0.07;
+    slab.position.y = -0.09;
     slab.castShadow = false; slab.receiveShadow = false; slab.userData = { sp3: o, slab: true };
     mesh.add(slab);
     const kerbMat = standardMaterial('#b8b4aa', 'default');
@@ -1889,7 +1889,7 @@ function mount(el, config, opts) {
     parts.forEach(([sx, sy, sz, x, y, z]) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.10, sz), apronMat);
       const sy2 = 0.10;
-      mesh.position.set(x, y - sy2 / 2, z); mesh.receiveShadow = true; apronGroup.add(mesh);
+      mesh.position.set(x, y - sy2 / 2 - 0.03, z); mesh.receiveShadow = true; apronGroup.add(mesh);
     });
     if (surroundGroup) {
       environment.remove(surroundGroup);
