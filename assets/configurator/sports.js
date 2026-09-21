@@ -277,7 +277,13 @@ function mountScene(){
   const eng=typeof window!=='undefined'?window.SportsScene3D:null;
   if(eng&&typeof eng.mount==='function'){
     let h=null;
-    try{h=eng.mount(el,sceneConfigNow(),{onPinDrop,onUnpin});}catch(e){h=null;_sceneErr=e;console.error('[sports] 3D mount failed',e);}
+    try{h=eng.mount(el,sceneConfigNow(),{
+      onPinDrop,onUnpin,
+      onContextLost:(e)=>{
+        try{_scene?.destroy?.()}catch(_){}
+        _scene=null;_sceneHost=null;_sceneErr=e;paintFallbackPlan();
+      }
+    });}catch(e){h=null;_sceneErr=e;console.error('[sports] 3D mount failed',e);}
     if(h){_scene=h;_sceneErr=null;updateEquipSceneHost();return;}
     if(!_sceneErr){_sceneErr=new Error(eng.supported&&!eng.supported()?'WebGL unavailable':'mount returned null');console.error('[sports] 3D mount failed',_sceneErr);}
   }else{

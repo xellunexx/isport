@@ -1569,6 +1569,7 @@ function mount(el, config, opts) {
   if (el.__sp3d && el.__sp3d.destroy) el.__sp3d.destroy();
   const onPinDrop = opts && typeof opts.onPinDrop === 'function' ? opts.onPinDrop : null;
   const onUnpin = opts && typeof opts.onUnpin === 'function' ? opts.onUnpin : null;
+  const onContextLostCallback = opts && typeof opts.onContextLost === 'function' ? opts.onContextLost : null;
 
   let renderer = null;
   try {
@@ -2159,7 +2160,10 @@ function mount(el, config, opts) {
   }
 
   /* ── toolbar overlay (own styles, sp3d- prefix, no external css) ── */
-  const state = { config: config || {}, view: 'perspective', dims: false, fs: false, night: false, surround: 'suburb', disposed: false };
+  const state = {
+    config: config || {}, view: 'perspective', dims: false, fs: false, night: false,
+    surround: 'suburb', disposed: false, contextLost: false, qualityLevel: 0
+  };
   try { state.night = localStorage.getItem('sp3d.night') === '1'; } catch (_) {}
   try {
     const saved = localStorage.getItem('sp3d.surround');
@@ -2174,6 +2178,17 @@ function mount(el, config, opts) {
   let nightSkyUpdate = false;
   let nightLightRefs = [];
   const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let raf = 0;
+  let loopRunning = false;
+  let intersecting = true;
+  let contextLossTimer = 0;
+  let contextLossNotified = false;
+  let intersectionObserver = null;
+  let qualityLevel = 0;
+  let qualityFrames = 0;
+  let qualitySince = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  let qualitySamples = [];
+  let frameCount = 0;
   function clearNightLights() {
     while (nightLights.children.length) {
       const c = nightLights.children[nightLights.children.length - 1];
@@ -3135,6 +3150,7 @@ function mount(el, config, opts) {
     buildTarget = group;
     fitSun();
     rebuildNightLights();
+    if (qualityLevel > 0) applyQualityLevel(qualityLevel);
     applyNightMix(state.night ? 1 : 0);
     if (opts.lightingPop) {
       group.traverse((obj) => {
@@ -3960,15 +3976,110 @@ function mount(el, config, opts) {
     camera.updateProjectionMatrix();
   }
 
+  function setShadowMapSize(light, size) {
+    if (!light?.shadow) return;
+    light.shadow.mapSize.set(size, size);
+    if (light.shadow.map) {
+      light.shadow.map.dispose();
+      light.shadow.map = null;
+    }
+  }
+  function applyQualityLevel(level) {
+    qualityLevel = Math.max(0, Math.min(3, level));
+    state.qualityLevel = qualityLevel;
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    renderer.setPixelRatio(qualityLevel === 0 ? Math.min(dpr, 2) : qualityLevel === 1 ? Math.min(dpr, 1.25) : 1);
+    if (qualityLevel >= 2) {
+      setShadowMapSize(sun, 1024);
+      nightLights.traverse((node) => { if (node.isSpotLight) setShadowMapSize(node, 512); });
+    } else {
+      setShadowMapSize(sun, 2048);
+      nightLights.traverse((node) => { if (node.isSpotLight) setShadowMapSize(node, 1024); });
+    }
+    if (qualityLevel >= 3) {
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+      nightLights.traverse((node) => { if (node.isSpotLight) node.castShadow = false; });
+    } else {
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
+    fitSize();
+  }
+  function stepQualityDown() {
+    if (qualityLevel >= 3) return;
+    applyQualityLevel(qualityLevel + 1);
+    console.info(`[sports3d] adaptive quality level ${qualityLevel}`);
+  }
+  function sampleQuality(now, elapsed) {
+    if (now - qualitySince < 2000 || elapsed <= 0 || elapsed > 250) return;
+    qualitySamples.push(elapsed);
+    qualityFrames++;
+    if (qualityFrames < 60) return;
+    const mean = qualitySamples.reduce((sum, value) => sum + value, 0) / qualitySamples.length;
+    qualityFrames = 0;
+    qualitySamples = [];
+    if (mean > 28) stepQualityDown();
+  }
+  function canRunLoop() {
+    return !state.disposed && !state.contextLost &&
+      !(typeof document !== 'undefined' && document.hidden) && intersecting;
+  }
+  function startLoop() {
+    if (loopRunning || !canRunLoop()) return;
+    loopRunning = true;
+    lastPropTick = 0;
+    raf = requestAnimationFrame(tick);
+  }
+  function stopLoop() {
+    loopRunning = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+    lastPropTick = 0;
+  }
+  function onVisibilityChange() {
+    if (canRunLoop()) startLoop();
+    else stopLoop();
+  }
+  function onIntersection(entries) {
+    intersecting = !!entries[0]?.isIntersecting;
+    onVisibilityChange();
+  }
+  function onContextLost(e) {
+    e.preventDefault();
+    state.contextLost = true;
+    contextLossNotified = false;
+    stopLoop();
+    clearTimeout(contextLossTimer);
+    contextLossTimer = setTimeout(() => {
+      if (state.contextLost && !contextLossNotified) {
+        contextLossNotified = true;
+        onContextLostCallback?.(new Error('WebGL context lost'));
+      }
+    }, 4000);
+  }
+  function onContextRestored() {
+    state.contextLost = false;
+    contextLossNotified = false;
+    clearTimeout(contextLossTimer);
+    lastPropTick = 0;
+    renderer.render(scene, camera);
+    startLoop();
+  }
+
   /* ── render loop: orbit damping + ≤250 ms ease-in of new content ── */
-  let raf = 0;
   const photoWorld = new THREE.Vector3();
   function tick() {
-    if (state.disposed) return;
+    if (!canRunLoop()) {
+      loopRunning = false;
+      raf = 0;
+      return;
+    }
     raf = requestAnimationFrame(tick);
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    const dt = lastPropTick ? Math.min(0.05, Math.max(0, (now - lastPropTick) / 1000)) : 0;
+    const elapsed = lastPropTick ? Math.max(0, now - lastPropTick) : 0;
+    const dt = Math.min(0.05, elapsed / 1000);
     lastPropTick = now;
+    frameCount++;
+    sampleQuality(now, elapsed);
     if (cameraTween) {
       const k = Math.min(1, (now - cameraTween.start) / cameraTween.duration);
       const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
@@ -4052,11 +4163,18 @@ function mount(el, config, opts) {
   rebuild(config || {}, true);
   el.appendChild(canvas);
   el.appendChild(toolbar);
+  canvas.addEventListener('webglcontextlost', onContextLost, false);
+  canvas.addEventListener('webglcontextrestored', onContextRestored, false);
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisibilityChange);
+  if (typeof IntersectionObserver !== 'undefined') {
+    intersectionObserver = new IntersectionObserver(onIntersection, { threshold: 0 });
+    intersectionObserver.observe(el);
+  }
   fitSize();
   doFit(true);
   if (state.night) setNight(true, true);
   syncToolbar();
-  tick();
+  startLoop();
 
   let ro = null;
   if (typeof ResizeObserver !== 'undefined') {
@@ -4090,6 +4208,8 @@ function mount(el, config, opts) {
     setNight,
     setSurround,
     setFullscreen,
+    quality() { return qualityLevel; },
+    stats() { return { frames: frameCount, quality: qualityLevel, running: loopRunning, contextLost: state.contextLost }; },
     propsDebug() { return PROPS.children.length; },
     rebuildDebug() { return rebuildCount; },
     /* test hook: drag registry snapshot (ids, bases, part counts) */
@@ -4103,7 +4223,12 @@ function mount(el, config, opts) {
     },
     destroy() {
       state.disposed = true;
-      cancelAnimationFrame(raf);
+      stopLoop();
+      clearTimeout(contextLossTimer);
+      if (intersectionObserver) intersectionObserver.disconnect();
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisibilityChange);
+      canvas.removeEventListener('webglcontextlost', onContextLost, false);
+      canvas.removeEventListener('webglcontextrestored', onContextRestored, false);
       if (ro) ro.disconnect();
       else if (typeof window !== 'undefined') window.removeEventListener('resize', fitSize);
       window.removeEventListener('keydown', onKey);
