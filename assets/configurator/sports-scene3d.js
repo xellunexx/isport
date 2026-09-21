@@ -1438,7 +1438,7 @@ function buildObject(o, L, W, onPhoto) {
         roughness: 0.3, metalness: 0.05
       }));
     head.position.y = 0.04;
-    head.castShadow = true;
+    head.castShadow = false;
     head.userData = { sp3: o, lampHead: true };
     mesh.add(head);
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -2215,6 +2215,7 @@ function mount(el, config, opts) {
     groundMat.color.copy(surroundGroundTint).multiplyScalar(THREE.MathUtils.lerp(1, 0.35, k));
     apronMat.color.setScalar(THREE.MathUtils.lerp(1, 0.55, k));
     group.traverse((node) => {
+      if (node.isMesh) node.receiveShadow = k < 0.5;
       if (!node.material) return;
       const mats = Array.isArray(node.material) ? node.material : [node.material];
       mats.forEach((mat) => {
@@ -2232,7 +2233,7 @@ function mount(el, config, opts) {
     });
     nightLightRefs.forEach(({ spot, pool }) => {
       spot.intensity = 8 * k;
-      pool.material.opacity = 0.16 * k;
+      pool.material.opacity = 0;
     });
   }
   const cs = typeof getComputedStyle === 'function' ? getComputedStyle(el) : null;
