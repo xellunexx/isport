@@ -980,7 +980,7 @@ function bindStep(){
       updateEquipGrid(sc);
     },120);
   });
-  bindEquipGrid(sc.querySelector('#spEquipGrid'));
+  bindEquipGrid(sc);
   /* H/V pin inputs: numeric → pin live; empty → unpin on commit;
      non-numeric → ignore + revert on blur */
   const onPinInput=(inp,axis,commit)=>{
