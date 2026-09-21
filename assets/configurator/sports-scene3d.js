@@ -1546,7 +1546,7 @@ function buildObject(o, L, W, onPhoto) {
   if (kind === 'field' && o.type === 'plane' && o.size) {
     const slab = new THREE.Mesh(new THREE.BoxGeometry(o.size[0], 0.14, o.size[1]), standardMaterial('#b8b4aa', 'default'));
     slab.position.y = -0.07;
-    slab.castShadow = true; slab.receiveShadow = true; slab.userData = { sp3: o, slab: true };
+    slab.castShadow = false; slab.receiveShadow = false; slab.userData = { sp3: o, slab: true };
     mesh.add(slab);
     const kerbMat = standardMaterial('#b8b4aa', 'default');
     const kerb = 0.055;
@@ -1637,7 +1637,7 @@ function mount(el, config, opts) {
   sun.shadow.camera.near = 0.1;
   sun.shadow.camera.far = 300;
   sun.shadow.bias = -0.0005;
-  sun.shadow.normalBias = 0.02;
+  sun.shadow.normalBias = 0.06;
   sun.shadow.radius = 3;
   sun.position.set(32, 30, 14);
   scene.add(sun);
