@@ -299,7 +299,7 @@ body.deck-side .catalog-body{
 body.deck-side .grid,
 body.deck-side .grid-note,
 body.deck-side #irlBar,
-body.deck-side .grid-more{max-width:none; padding-left:0; padding-right:0; grid-column:2}
+body.deck-side .grid-more{max-width:none; margin-left:0; margin-right:0; padding-left:0; padding-right:0; grid-column:2}
 .filter-side{
   position:sticky; top:calc(var(--hdrH) + var(--deckH,60px) + 10px); align-self:start;
   max-height:calc(100vh - var(--hdrH) - var(--deckH,60px) - 20px);
