@@ -7,6 +7,7 @@ function put(lang,view){
 }
 put('en',{
   perspective:'Perspective', top:'Top / Plan', fit:'Fit', dims:'Dims', night:'Night',
+  surround:'Surroundings', surroundField:'Open field', surroundVillage:'Village', surroundSuburb:'Suburb', surroundCity:'City',
   fullscreen:'Fullscreen', exitFullscreen:'Exit fullscreen', rotate:'Rotate',
   tilt:'Tilt', raise:'Raise', lower:'Lower', reset:'Reset', grid:'Grid',
   sideTilt:'Side tilt', hint:'Drag to move · Ctrl rotate · Shift raise · Alt tilt · Space no snap · Del remove',
@@ -16,6 +17,7 @@ put('en',{
 });
 put('bg',{
   perspective:'Перспектива', top:'Отгоре / План', fit:'Побери', dims:'Размери', night:'Нощ',
+  surround:'Околност', surroundField:'Поле', surroundVillage:'Село', surroundSuburb:'Квартал', surroundCity:'Град',
   fullscreen:'Цял екран', exitFullscreen:'Изход от цял екран', rotate:'Завърти',
   tilt:'Наклон', raise:'Повдигни', lower:'Свали', reset:'Нулирай', grid:'Мрежа',
   sideTilt:'Страничен наклон', hint:'Влачи за преместване · Ctrl завъртане · Shift повдигане · Alt наклон · Space без прилепване · Del премахване',
