@@ -2150,6 +2150,11 @@ function mount(el, config, opts) {
       const spot = new THREE.SpotLight(0xfff1c1, 0, 45, 0.7, 0.8, 1.5);
       spot.position.copy(world);
       spot.castShadow = false;
+      spot.shadow.bias = -0.0005;
+      spot.shadow.normalBias = 0.05;
+      spot.shadow.mapSize.set(1024, 1024);
+      spot.shadow.camera.near = 1;
+      spot.shadow.camera.far = Math.max(12, world.y + Math.hypot(L, W));
       const target = new THREE.Object3D();
       target.position.set(THREE.MathUtils.clamp(world.x * 0.35, -L / 2, L / 2), 0, THREE.MathUtils.clamp(world.z * 0.35, -W / 2, W / 2));
       scene.add(target); spot.target = target;
@@ -2226,8 +2231,8 @@ function mount(el, config, opts) {
       material.emissiveIntensity = THREE.MathUtils.lerp(0, type === 'window' ? 1.1 : 1.6, k);
     });
     nightLightRefs.forEach(({ spot, pool }) => {
-      spot.intensity = 24 * k;
-      pool.material.opacity = 0.35 * k;
+      spot.intensity = 8 * k;
+      pool.material.opacity = 0.16 * k;
     });
   }
   const cs = typeof getComputedStyle === 'function' ? getComputedStyle(el) : null;
