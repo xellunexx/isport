@@ -450,6 +450,7 @@ function surroundContactTexture() {
 
 function makeTree(height = 4, crown = 1.2, variant = 'round', color = '#3e7d3a') {
   const g = new THREE.Group();
+  g.userData.surroundTree = true;
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.13, height * 0.58, 8),
     standardMaterial('#72533b', 'wood'));
   trunk.position.y = height * 0.29;
@@ -1696,6 +1697,18 @@ function mount(el, config, opts) {
     }));
     mesh.rotation.set(-HPI, ry, 0); mesh.position.set(x, 0.006, z); root.add(mesh);
   }
+  function isInsideCourt(x, z, L, W, margin = 3) {
+    return Math.abs(x) < L / 2 + 4 + margin && Math.abs(z) < W / 2 + 4 + margin;
+  }
+  function keepOut(x, z, L, W, margin = 3) {
+    if (!isInsideCourt(x, z, L, W, margin)) return [x, z];
+    const edgeX = L / 2 + 4 + margin;
+    const edgeZ = W / 2 + 4 + margin;
+    const remainingX = edgeX - Math.abs(x);
+    const remainingZ = edgeZ - Math.abs(z);
+    if (remainingX < remainingZ && x !== 0) return [x < 0 ? -edgeX : edgeX, z];
+    return [x, z < 0 ? -edgeZ : edgeZ];
+  }
   function addSurroundBuilding(root, x, z, w, d, h, bodyColor, roofColor, windows = true) {
     const wallMat = surroundMat(bodyColor);
     const body = surroundMesh(root, new THREE.BoxGeometry(w, h, d), wallMat, x, h / 2, z);
@@ -1832,11 +1845,14 @@ function mount(el, config, opts) {
       hill.scale.y = 0.22; hill.castShadow = false; hill.receiveShadow = false;
     }
   }
-  function addTreeline(root, rnd, count = 18, radius = 58) {
+  function addTreeline(root, rnd, count = 18, radius = 58, L, W) {
+    const clearX = L / 2 + 4, clearZ = W / 2 + 4;
+    radius = Math.max(radius, Math.hypot(clearX, clearZ) + 8);
     for (let i = 0; i < count; i++) {
       const a = rnd() * TAU, d = radius + rnd() * 18;
       const tree = makeTree(3.6 + rnd() * 2.5, 0.9 + rnd() * 0.5, i % 4 === 0 ? 'conifer' : 'round', '#477348');
-      tree.position.set(Math.cos(a) * d, 0, Math.sin(a) * d - 45);
+      const [x, z] = keepOut(Math.cos(a) * d, Math.sin(a) * d - 45, L, W);
+      tree.position.set(x, 0, z);
       tree.traverse((o) => { if (o.isMesh) { o.castShadow = d < 35; o.receiveShadow = true; } });
       root.add(tree);
     }
@@ -1877,18 +1893,23 @@ function mount(el, config, opts) {
       if (kind === 'city') {
         for (let i = 0; i < 3; i++) addCar(root, clearX + 3.4, -10 + i * 7, HPI, rnd);
         for (let i = -2; i <= 2; i++) addSurroundBuilding(root, i * 17, clearZ + 25, 12, 8, 10 + (i + 2) * 1.7, ['#a8adb2', '#d2c4ae', '#9b5f4b'][i % 3], '#565b65');
-        addSurroundBuilding(root, 34, 68, 16, 11, 25, '#8f969c', '#454c56');
-        addSurroundBuilding(root, -30, 76, 16, 11, 31, '#b0a99c', '#454c56');
+        const [towerX1, towerZ1] = keepOut(34, 68, L, W);
+        const [towerX2, towerZ2] = keepOut(-30, 76, L, W);
+        addSurroundBuilding(root, towerX1, towerZ1, 16, 11, 25, '#8f969c', '#454c56');
+        addSurroundBuilding(root, towerX2, towerZ2, 16, 11, 31, '#b0a99c', '#454c56');
         for (let i = 0; i < 6; i++) addLamp(root, -clearX - 3, -12 + i * 5);
         for (let i = 0; i < 8; i++) surroundMesh(root, new THREE.CylinderGeometry(0.08, 0.08, 0.7, 8), surroundMat('#303840'), -clearX - 2, 0.35, -12 + i * 4, true);
         surroundMesh(root, new THREE.BoxGeometry(2.8, 2.5, 1.5), surroundMat('#d39b58'), clearX + 8, 1.25, 8, true);
       }
-      addTreeline(root, rnd, kind === 'city' ? 14 : 18, 55);
+      addTreeline(root, rnd, kind === 'city' ? 14 : 18, 55, L, W);
     } else if (kind === 'village') {
       surroundMesh(root, new THREE.BoxGeometry(4, 0.08, 110), roadMat, -(clearX + 16), -0.07, 0);
       surroundMesh(root, new THREE.BoxGeometry(1.2, 0.08, 110), surroundMat('#b9a688'), -(clearX + 13.4), -0.03, 0);
       surroundMesh(root, new THREE.BoxGeometry(1.2, 0.08, 110), surroundMat('#b9a688'), -(clearX + 18.6), -0.03, 0);
-      for (let i = -3; i <= 3; i++) addSurroundBuilding(root, -30 + (i % 2) * 4, clearZ + 16 + i * 8, 7, 5, 2.9, '#dbc7a4', i % 2 ? '#7a4a3a' : '#8c4a32', false);
+      for (let i = -3; i <= 3; i++) {
+        const [houseX, houseZ] = keepOut(-30 + (i % 2) * 4, clearZ + 16 + i * 8, L, W);
+        addSurroundBuilding(root, houseX, houseZ, 7, 5, 2.9, '#dbc7a4', i % 2 ? '#7a4a3a' : '#8c4a32', false);
+      }
       for (let i = -3; i <= 3; i++) {
         const tree = makeTree(2.6 + rnd(), 0.7, 'round', '#65934d');
         tree.position.set(-clearX - 3, 0, i * 12 + 3); root.add(tree);
@@ -1897,13 +1918,15 @@ function mount(el, config, opts) {
         surroundMesh(root, new THREE.CylinderGeometry(0.08, 0.1, 0.9, 8), surroundMat('#7c5b3c'), -clearX - 4, 0.45, z, true);
         surroundMesh(root, new THREE.CylinderGeometry(0.06, 0.06, 4, 8), surroundMat('#7c5b3c'), -clearX - 4, 0.62, z + 2, true);
       }
-      surroundMesh(root, new THREE.BoxGeometry(3, 6, 3), surroundMat('#c8b89f'), 45, 3, 48, true);
-      surroundMesh(root, new THREE.ConeGeometry(2.4, 2.5, 4), surroundMat('#8c4a32'), 45, 7.25, 48, true);
+      const [churchX, churchZ] = keepOut(45, 48, L, W);
+      surroundMesh(root, new THREE.BoxGeometry(3, 6, 3), surroundMat('#c8b89f'), churchX, 3, churchZ, true);
+      surroundMesh(root, new THREE.ConeGeometry(2.4, 2.5, 4), surroundMat('#8c4a32'), churchX, 7.25, churchZ, true);
       for (let i = 0; i < 2; i++) {
-        const bale = surroundMesh(root, new THREE.CylinderGeometry(0.55, 0.55, 1.1, 12), surroundMat('#c59d52'), -clearX - 2 + i * 1.4, 0.55, 26, true);
+        const [baleX, baleZ] = keepOut(-clearX - 2 + i * 1.4, 26, L, W);
+        const bale = surroundMesh(root, new THREE.CylinderGeometry(0.55, 0.55, 1.1, 12), surroundMat('#c59d52'), baleX, 0.55, baleZ, true);
         bale.rotation.z = HPI;
       }
-      addHills(root, rnd); addTreeline(root, rnd, 20, 72);
+      addHills(root, rnd); addTreeline(root, rnd, 20, 72, L, W);
     } else {
       surroundMesh(root, new THREE.BoxGeometry(4, 0.08, 14), surroundMat('#a89578'), 0, -0.07, clearZ + 7);
       for (let side of [-1, 1]) {
@@ -1914,16 +1937,20 @@ function mount(el, config, opts) {
         }
       }
       for (let i = 0; i < 24; i++) {
-        const a = rnd() * TAU, d = 25 + rnd() * 45;
+        const a = rnd() * TAU;
+        const d = Math.max(25, Math.hypot(clearX, clearZ) + 4) + rnd() * 45;
         const tree = makeTree(3.8 + rnd() * 2.2, 0.8 + rnd() * 0.55, i % 5 === 0 ? 'conifer' : 'round', '#4f8748');
-        tree.position.set(Math.cos(a) * d, 0, Math.sin(a) * d); root.add(tree);
+        const [x, z] = keepOut(Math.cos(a) * d, Math.sin(a) * d, L, W);
+        tree.position.set(x, 0, z); root.add(tree);
       }
       for (let i = 0; i < 3; i++) {
-        const bale = surroundMesh(root, new THREE.CylinderGeometry(0.6, 0.6, 1.2, 12), surroundMat('#c59d52'), -22 + i * 2, 0.6, 18, true);
+        const [baleX, baleZ] = keepOut(-22 + i * 2, 18, L, W);
+        const bale = surroundMesh(root, new THREE.CylinderGeometry(0.6, 0.6, 1.2, 12), surroundMat('#c59d52'), baleX, 0.6, baleZ, true);
         bale.rotation.z = HPI;
       }
-      addSurroundBuilding(root, 45, 60, 10, 7, 4.2, '#c5a97f', '#704b37', false);
-      addHills(root, rnd); addTreeline(root, rnd, 24, 72);
+      const [barnX, barnZ] = keepOut(45, 60, L, W);
+      addSurroundBuilding(root, barnX, barnZ, 10, 7, 4.2, '#c5a97f', '#704b37', false);
+      addHills(root, rnd); addTreeline(root, rnd, 24, 72, L, W);
     }
     return root;
   }

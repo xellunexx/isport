@@ -16,7 +16,7 @@ put('en',{
   resetAllPins:'Reset all pins'
 });
 put('bg',{
-  perspective:'Перспектива', top:'Отгоре / План', fit:'Побери', dims:'Размери', night:'Нощ',
+  perspective:'Перспектива', top:'Отгоре / План', fit:'Центрирай', dims:'Размери', night:'Нощ',
   surround:'Околност', surroundField:'Поле', surroundVillage:'Село', surroundSuburb:'Квартал', surroundCity:'Град',
   fullscreen:'Цял екран', exitFullscreen:'Изход от цял екран', rotate:'Завърти',
   tilt:'Наклон', raise:'Повдигни', lower:'Свали', reset:'Нулирай', grid:'Мрежа',
