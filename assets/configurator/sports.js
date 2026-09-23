@@ -45,10 +45,63 @@ const S={
   equipment:[], purpFilter:'all', equipQuery:'', equipShown:48,
   loadedId:null, loadedName:''
 };
+const HIST={past:[],future:[],max:60};
 let root=null;
 let _sceneTimer=null;
 let _scene=null, _sceneHost=null, _sceneDead=false, _sceneErr=null, _scenePending=false, _sceneReadyBound=false;
 let _equipSceneHost=null;   // capture-observable cache of the pinned-equipment host
+let _historyKeyHandler=null;
+
+function snapshot(){return JSON.parse(JSON.stringify(S.equipment));}
+function clearHistory(){HIST.past=[];HIST.future=[];}
+function histPush(label){
+  const now=Date.now();
+  const last=HIST.past[HIST.past.length-1];
+  if(last&&last.label===label&&now-last.time<800)return;
+  HIST.past.push({state:snapshot(),label,time:now});
+  if(HIST.past.length>HIST.max)HIST.past.shift();
+  HIST.future=[];
+  updateHistoryButtons();
+}
+function undo(){
+  const last=HIST.past.pop();
+  if(!last)return false;
+  HIST.future.push({state:snapshot(),label:last.label,time:Date.now()});
+  S.equipment=last.state;
+  renderStepContent();
+  touched();
+  pushScene();
+  updateEquipSceneHost();
+  updateHistoryButtons();
+  return true;
+}
+function redo(){
+  const next=HIST.future.pop();
+  if(!next)return false;
+  HIST.past.push({state:snapshot(),label:next.label,time:Date.now()});
+  S.equipment=next.state;
+  renderStepContent();
+  touched();
+  pushScene();
+  updateEquipSceneHost();
+  updateHistoryButtons();
+  return true;
+}
+function updateHistoryButtons(){
+  if(!root)return;
+  const u=root.querySelector('[data-sp-undo]');
+  const r=root.querySelector('[data-sp-redo]');
+  if(u)u.disabled=!HIST.past.length;
+  if(r)r.disabled=!HIST.future.length;
+}
+function onHistoryKey(e){
+  if(!root||!root.isConnected||(!e.ctrlKey&&!e.metaKey))return;
+  const target=e.target;
+  if(target?.matches?.('input,textarea,select,[contenteditable]')||target?.isContentEditable)return;
+  const key=String(e.key||'').toLowerCase();
+  const handled=key==='z' ? (e.shiftKey?redo():undo()) : (key==='y'?redo():false);
+  if(handled)e.preventDefault();
+}
 
 /* ── small helpers ─────────────────────────────────────────────────── */
 const toNum=v=>{const n=parseFloat(String(v??'').replace(/\s/g,'').replace(',','.'));return Number.isFinite(n)?n:0;};
@@ -244,6 +297,7 @@ let _lastSceneKey='';
 function onPinDrop(id,x,z,q,rotY,elev,tiltX,tiltZ){
   const e=S.equipment.find(y=>String(y.id)===String(id));
   if(!e)return;
+  histPush('move:'+id);
   /* qty>1: the entry pin anchors unit 0 — undo the dragged unit's trail offset */
   let hx=+x;
   const it=catById(e.id);
@@ -262,6 +316,7 @@ function onPinDrop(id,x,z,q,rotY,elev,tiltX,tiltZ){
 function onUnpin(id, push=true){
   const e=S.equipment.find(y=>String(y.id)===String(id));
   if(!e)return;
+  if(push)histPush('unpin:'+id);
   e.pinned=false;
   delete e.x;delete e.z;delete e.rotY;delete e.elev;delete e.tiltX;delete e.tiltZ;
   updateEquipSceneHost();
@@ -328,6 +383,8 @@ function pushScene(){
 function scheduleScenePush(){clearTimeout(_sceneTimer);_sceneTimer=setTimeout(pushScene,150);}
 function destroyScene(){
   clearTimeout(_sceneTimer);
+  if(_historyKeyHandler)window.removeEventListener('keydown',_historyKeyHandler);
+  _historyKeyHandler=null;
   if(_scene){try{_scene.destroy?.()}catch(_e){ }}
   _scene=null;_sceneHost=null;
 }
@@ -414,6 +471,7 @@ async function loadSaved(id){
   }
 }
 function applyConfig(cfg){
+  clearHistory();
   cfg=cfg&&typeof cfg==='object'?cfg:{};
   const sp=optSports().find(x=>x.id===cfg.sport);
   S.sport=sp?cfg.sport:(typeof cfg.sport==='string'&&cfg.sport?cfg.sport:null);
@@ -463,6 +521,7 @@ function saveConfig(){
     .catch(e=>{S.errSaved=e.message||t('sports.saveFailed');renderErrors();});
 }
 function newConfig(){
+  clearHistory();
   Object.assign(S,{
     step:1,seen:new Set([1]),sport:null,dims:{l:0,w:0},dimsHint:'',dimClamped:false,surface:null,variant:null,
     fencingOn:true,fenceHeight:fenceHeights().includes(4)?4:fenceHeights()[0]||4,fenceOpts:[],gates:0,
@@ -493,6 +552,8 @@ function exportJson(){
 function render(container){
   destroyScene(); // previous host node is discarded with container.innerHTML
   root=container;
+  _historyKeyHandler=onHistoryKey;
+  window.addEventListener('keydown',_historyKeyHandler);
   root.innerHTML=shell();
   bindShell();
   renderRegions();
@@ -779,6 +840,7 @@ function updateEquipGrid(scope=root){
 }
 function bumpEquipment(id,d){
   const cur=S.equipment.find(e=>String(e.id)===String(id));
+  histPush('qty:'+id);
   if(!cur){
     if(d>0){
       const e={id:String(id),qty:1};
@@ -846,7 +908,7 @@ function renderEquipment(){
   const posNote=S.equipment.length?`<div class="sp-posnote">${t('sports.posAuto')}</div>`:'';
   const items=equipItems();
   const resetPins=S.equipment.length?`<div class="sp-equip-tools"><button type="button" class="btn ghost" data-sp-reset-pins>${t('sports.resetAllPins')}</button></div>`:'';
-  return `<div class="sp-ehead"><label class="sp-esearch"><input type="search" id="spEquipQ" placeholder="${esc(t('sports.equipSearch'))}" value="${esc(S.equipQuery)}"></label><span class="sp-ecount" aria-live="polite">${esc(t('sports.equipCount',{n:items.length}))}</span></div>${chips}${sel}${posNote}${resetPins}<div id="spEquipGrid">${renderEquipGrid(items)}</div>`;
+  return `<div class="sp-ehead"><label class="sp-esearch"><input type="search" id="spEquipQ" placeholder="${esc(t('sports.equipSearch'))}" value="${esc(S.equipQuery)}"></label><span class="sp-ecount" aria-live="polite">${esc(t('sports.equipCount',{n:items.length}))}</span><span class="sp-ehistory"><button type="button" class="btn ghost" data-sp-undo title="${esc(t('sports.undo'))}" aria-label="${esc(t('sports.undo'))}" ${HIST.past.length?'':'disabled'}>↶</button><button type="button" class="btn ghost" data-sp-redo title="${esc(t('sports.redo'))}" aria-label="${esc(t('sports.redo'))}" ${HIST.future.length?'':'disabled'}>↷</button></span></div>${chips}${sel}${posNote}${resetPins}<div id="spEquipGrid">${renderEquipGrid(items)}</div>`;
 }
 
 /* step 5: extras — pictogram rows */
@@ -981,6 +1043,8 @@ function bindStep(){
     },120);
   });
   bindEquipGrid(sc);
+  sc.querySelector('[data-sp-undo]')?.addEventListener('click',undo);
+  sc.querySelector('[data-sp-redo]')?.addEventListener('click',redo);
   /* H/V pin inputs: numeric → pin live; empty → unpin on commit;
      non-numeric → ignore + revert on blur */
   const onPinInput=(inp,axis,commit)=>{
@@ -996,6 +1060,7 @@ function bindStep(){
         return (!h||!String(h.value).trim())&&(!v||!String(v.value).trim());
       })(inp.closest&&inp.closest('.sp-selchip'));
       if((commit||bothEmpty)&&isPinned(e)){
+        histPush('unpin:'+e.id);
         delete e.x;delete e.z;delete e.pinned;
         updateEquipSceneHost();renderStepContent();scheduleScenePush();
       }else if(commit){
@@ -1013,6 +1078,7 @@ function bindStep(){
     const cz=v=>Math.min(R.maxZ,Math.max(R.minZ,v));
     const nx=cx(axis==='h'?n:(isPinned(e)?+e.x:0));
     const nz=cz(axis==='v'?n:(isPinned(e)?+e.z:0));
+    histPush('edit:'+e.id);
     e.x=+nx.toFixed(3);e.z=+nz.toFixed(3);e.pinned=true;
     updateEquipSceneHost();
     syncPinInputs(e,axis==='h'?'h':'v');
@@ -1030,11 +1096,13 @@ function bindStep(){
   });
   sc.querySelectorAll('[data-sp-del]').forEach(b=>b.onclick=e=>{
     e.stopPropagation();
+    histPush('delete:'+b.dataset.spDel);
     S.equipment=S.equipment.filter(x=>String(x.id)!==String(b.dataset.spDel));
     renderStepContent();touched();
   });
   sc.querySelectorAll('[data-sp-reset-pins]').forEach(b=>b.onclick=e=>{
     e.stopPropagation();
+    histPush('clear');
     for(const item of S.equipment)onUnpin(item.id, false);
     renderStepContent();touched();
   });

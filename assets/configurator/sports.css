@@ -334,6 +334,8 @@
 .sp-esearch input{width:100%;padding:8px 10px;border:1px solid var(--n-200);border-radius:var(--r-pill);background:var(--n-000);color:var(--n-900);font:inherit}
 .sp-esearch input:focus-visible{outline:none;border-color:var(--a-400);box-shadow:var(--focus-shadow)}
 .sp-ecount{flex:none;color:var(--muted);font-size:var(--fs-caption);font-variant-numeric:tabular-nums}
+.sp-ehistory{display:flex;gap:4px;margin-left:auto}
+.sp-ehistory .btn{width:30px;height:30px;padding:0;font-size:18px;line-height:1}
 .sp-egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:.55rem;margin-top:var(--s3)}
 .sp-ecard{
   border:var(--hairline-soft);border-radius:12px;background:var(--n-000);
