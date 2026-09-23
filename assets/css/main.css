@@ -190,6 +190,18 @@ h1,h2,h3{font-family:var(--fd); font-weight:800; letter-spacing:.015em; margin:0
 .deck-count{font-family:var(--fd); color:var(--faint); font-weight:600; letter-spacing:.06em}
 .deck-count b{color:var(--acc2); font-size:1.15em}
 .deck-spacer{flex:1}
+.deck-filters-btn,.deck-side-btn{display:none}
+.deck-wrap.deck-compact .deck-filters-btn{display:inline-flex}
+.deck-wrap.deck-compact .deck-cats,
+.deck-wrap.deck-compact .deck-purps,
+.deck-wrap.deck-compact #deckGroup2{display:none}
+.deck-wrap.deck-compact.deck-open .deck-cats,
+.deck-wrap.deck-compact.deck-open .deck-purps{display:flex}
+.deck-wrap.deck-compact.deck-open #deckGroup2{display:block}
+@media (min-width:1100px){
+  .deck-side-btn{display:inline-flex}
+}
+.deck-side-btn[aria-pressed="true"]{border-color:var(--acc); color:var(--acc2)}
 
 .search-field{
   display:flex; align-items:center; gap:.45rem; background:var(--panel);
@@ -274,6 +286,32 @@ h1,h2,h3{font-family:var(--fd); font-weight:800; letter-spacing:.015em; margin:0
 /* active filters ribbon */
 .deck-active{
   border-top:1px dashed var(--line); padding-top:.5rem;
+}
+body.deck-side .deck-wrap .deck-cats,
+body.deck-side .deck-wrap .deck-purps,
+body.deck-side .deck-wrap #deckGroup2{display:none}
+
+.catalog-body{max-width:1560px; margin:0 auto}
+body.deck-side .catalog-body{
+  max-width:1560px; margin:0 auto; display:grid;
+  grid-template-columns:270px minmax(0,1fr); gap:1rem; padding:0 1.1rem;
+}
+body.deck-side .grid,
+body.deck-side .grid-note,
+body.deck-side #irlBar,
+body.deck-side .grid-more{max-width:none; margin-left:0; margin-right:0; padding-left:0; padding-right:0; grid-column:2}
+.filter-side{
+  position:sticky; top:calc(var(--hdrH) + var(--deckH,60px) + 10px); align-self:start;
+  max-height:calc(100vh - var(--hdrH) - var(--deckH,60px) - 20px);
+  overflow:auto; display:flex; flex-direction:column; gap:.7rem; padding-top:1rem;
+}
+.filter-side .deck-row{flex-wrap:wrap; overflow:visible}
+.filter-side .cat-tile{flex:1 1 100%; min-width:0}
+.filter-side .facet-lbl{flex-basis:100%; margin-bottom:.2rem}
+@media (max-width:1099px){
+  body.deck-side .catalog-body{display:block}
+  .filter-side{position:static; max-height:none}
+  .deck-side-btn{display:none!important}
 }
 .af{
   display:inline-flex; align-items:center; gap:.5rem; background:var(--panel2);
