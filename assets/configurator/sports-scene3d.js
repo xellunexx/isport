@@ -4302,8 +4302,6 @@ function mount(el, config, opts) {
           else focusBox(poles, { margin: 1.3 });
         } else if (surfaceChanged) {
           doFit(false, 0.92);
-        } else {
-          doFit(false);
         }
       } else {
         updateEquipment(cfg);
