@@ -2364,6 +2364,7 @@ function mount(el, config, opts) {
   toolbar.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-sp3d]');
     if (!b) return;
+    cancelFocusReturn();
     const act = b.dataset.sp3d;
     if (act === 'perspective') setView('perspective');
     else if (act === 'top') setView('top');
@@ -3858,9 +3859,17 @@ function mount(el, config, opts) {
     return D * 1.04 + 0.5;
   }
   let cameraTween = null;
+  let focusReturnTimer = 0;
   function cancelCameraTween() { cameraTween = null; }
+  function cancelFocusReturn() {
+    if (focusReturnTimer) {
+      clearTimeout(focusReturnTimer);
+      focusReturnTimer = 0;
+    }
+  }
   let idleTimer = 0;
   function noteInteraction() {
+    cancelFocusReturn();
     cancelCameraTween();
     controls.autoRotate = false;
     if (idleTimer) clearTimeout(idleTimer);
@@ -3883,6 +3892,7 @@ function mount(el, config, opts) {
     };
   }
   function doFit(immediate = false, margin = 1) {
+    cancelFocusReturn();
     const { c, r, bb, hFov, vFov } = fitInfo();
     let dist;
     const targetY = 0.3;
@@ -3913,6 +3923,38 @@ function mount(el, config, opts) {
     controls.maxDistance = dist * 4 * margin;
     tweenCamera(position, target, 700, immediate);
   }
+  function focusBox(box, { margin = 1.25, duration = 900, hold = 3200 } = {}) {
+    cancelFocusReturn();
+    if (state.view === 'top' || !box || box.isEmpty()) {
+      doFit(false);
+      return;
+    }
+    const target = box.getCenter(new THREE.Vector3());
+    target.y = Math.max(0.3, target.y);
+    const current = camera.position.clone().sub(target);
+    let azimuth = Math.atan2(current.z, current.x);
+    if (!Number.isFinite(azimuth)) azimuth = -Math.PI / 4;
+    const horizontal = Math.hypot(current.x, current.z);
+    const elevation = THREE.MathUtils.clamp(
+      Math.atan2(Math.max(0.001, current.y), Math.max(0.001, horizontal)),
+      20 * Math.PI / 180,
+      40 * Math.PI / 180
+    );
+    const dir = new THREE.Vector3(
+      Math.cos(elevation) * Math.cos(azimuth),
+      Math.sin(elevation),
+      Math.cos(elevation) * Math.sin(azimuth)
+    ).normalize();
+    const { hFov, vFov } = fitInfo();
+    const dist = fitDistance(box, target, dir, hFov, vFov) * margin;
+    const position = target.clone().add(dir.multiplyScalar(dist));
+    noteInteraction();
+    tweenCamera(position, target, duration);
+    focusReturnTimer = setTimeout(() => {
+      focusReturnTimer = 0;
+      doFit(false);
+    }, hold);
+  }
   function viewCenter() {
     if (!el || !canvas || !camera) return null;
     const L = num0(state.config?.dims, 'l', 20);
@@ -3930,14 +3972,21 @@ function mount(el, config, opts) {
     const cz = Math.min(halfW, Math.max(-halfW, target.z));
     return { x: cx + L / 2, z: cz + W / 2 };
   }
-  function selectById(id, retry = true) {
+  function selectById(id, opts = {}) {
+    if (typeof opts === 'boolean') opts = { retry: opts };
+    const retry = opts.retry !== false;
     const u = dragUnits.find(item => String(item.id) === String(id) && (item.q || 0) === 0);
     if (u) {
       selectUnit(u);
+      if (opts.focus) {
+        const box = new THREE.Box3();
+        (u.targets || []).forEach((target) => box.expandByObject(target));
+        focusBox(box, { margin: 2.2, hold: 2600 });
+      }
       return true;
     }
     if (retry && typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => selectById(id, false));
+      requestAnimationFrame(() => selectById(id, { ...opts, retry: false }));
     }
     return false;
   }
@@ -4215,14 +4264,47 @@ function mount(el, config, opts) {
     update(cfg) {
       const prevConfig = state.config || {};
       const sportChanged = state.config?.sport !== cfg?.sport;
+      const dimsChanged = Number(prevConfig?.dims?.l || 0) !== Number(cfg?.dims?.l || 0) ||
+        Number(prevConfig?.dims?.w || 0) !== Number(cfg?.dims?.w || 0);
       const nextKey = sceneStaticKey(cfg || {});
       if (staticSceneKey == null || nextKey !== staticSceneKey) {
         const fenceOnly = sceneFacilityKey(prevConfig) === sceneFacilityKey(cfg || {}) &&
           configFenceHeight(prevConfig) !== configFenceHeight(cfg || {});
         const fenceOnChanged = configFenceOn(prevConfig) !== configFenceOn(cfg || {});
-        const lightingOn = Number(prevConfig?.lighting?.poles || 0) <= 0 && Number(cfg?.lighting?.poles || 0) > 0;
+        const prevPoles = Number(prevConfig?.lighting?.poles || 0);
+        const nextPoles = Number(cfg?.lighting?.poles || 0);
+        const lightingChanged = prevPoles !== nextPoles;
+        const lightingOn = prevPoles <= 0 && nextPoles > 0;
+        const surfaceChanged = prevConfig?.surface !== cfg?.surface ||
+          prevConfig?.variant !== cfg?.variant ||
+          prevConfig?.colors?.surface !== cfg?.colors?.surface;
         rebuild(cfg, false, { fenceMorph: fenceOnly, oldFenceHeight: configFenceHeight(prevConfig), lightingPop: lightingOn });
-        if (sportChanged || fenceOnly || fenceOnChanged || lightingOn) doFit(false, lightingOn ? 1.15 : 1);
+        if (sportChanged || dimsChanged) {
+          doFit(false);
+        } else if (fenceOnly || fenceOnChanged) {
+          if (!configFenceOn(cfg)) {
+            doFit(false);
+          } else {
+            const L = num0(cfg?.dims, 'l', 20), W = num0(cfg?.dims, 'w', 12), gap = 4;
+            const z = (camera.position.z < 0 ? -1 : 1) * (W / 2 + gap);
+            focusBox(new THREE.Box3(
+              new THREE.Vector3(-L / 2 - gap, 0, z - 0.5),
+              new THREE.Vector3(L / 2 + gap, Math.max(0.3, configFenceHeight(cfg)), z + 0.5)
+            ));
+          }
+        } else if (lightingChanged) {
+          const poles = new THREE.Box3();
+          group.traverse((node) => {
+            const meta = node.userData?.sp3?.meta;
+            if (meta?.kind === 'pole' || meta?.kind === 'light') poles.expandByObject(node);
+          });
+          if (poles.isEmpty()) doFit(false);
+          else focusBox(poles, { margin: 1.3 });
+        } else if (surfaceChanged) {
+          doFit(false, 0.92);
+        } else {
+          doFit(false);
+        }
       } else {
         updateEquipment(cfg);
       }
@@ -4236,6 +4318,7 @@ function mount(el, config, opts) {
     setSurround,
     setFullscreen,
     quality() { return qualityLevel; },
+    cameraDebug() { return { pos: camera.position.toArray(), target: controls.target.toArray() }; },
     stats() { return { frames: frameCount, quality: qualityLevel, running: loopRunning, contextLost: state.contextLost }; },
     propsDebug() { return PROPS.children.length; },
     rebuildDebug() { return rebuildCount; },
@@ -4251,6 +4334,7 @@ function mount(el, config, opts) {
     destroy() {
       state.disposed = true;
       stopLoop();
+      cancelFocusReturn();
       clearTimeout(contextLossTimer);
       if (intersectionObserver) intersectionObserver.disconnect();
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisibilityChange);

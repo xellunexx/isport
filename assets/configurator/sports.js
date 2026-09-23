@@ -792,7 +792,7 @@ function bumpEquipment(id,d){
   renderStepContent();touched();
   if(!cur&&d>0&&_scene&&typeof _scene.selectById==='function'){
     pushScene();
-    _scene.selectById(id);
+    _scene.selectById(id,{focus:true});
   }
 }
 function bindEquipGrid(scope){
